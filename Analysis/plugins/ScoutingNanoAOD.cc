@@ -153,8 +153,10 @@ private:
   unsigned char                trig;
        
   edm::InputTag                algInputTag_;       
+  edm::InputTag                extInputTag_;       
   edm::EDGetToken              algToken_;
-  l1t::L1TGlobalUtil          *l1GtUtils_;
+  //l1t::L1TGlobalUtil          *l1GtUtils_;
+  std::unique_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
   std::vector<std::string>     l1Seeds_;
   std::vector<bool>            l1Result_;
        
@@ -307,10 +309,13 @@ ScoutingNanoAOD::ScoutingNanoAOD(const edm::ParameterSet& iConfig):
 {
   usesResource("TFileService");
   if (doL1) {
-    algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
-    algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
-    l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-    l1GtUtils_ = new l1t::L1TGlobalUtil(iConfig,consumesCollector());	
+   algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
+   extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
+   algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
+   l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
+    /* l1GtUtils_ = new l1t::L1TGlobalUtil(iConfig,consumesCollector());*/	
+   l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(
+    iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
   }
   else {
     l1Seeds_ = std::vector<std::string>();
@@ -504,7 +509,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   vector<TransientTrack> t_tks;
   std::unique_ptr<VertexCollection> vertexCollection(new VertexCollection());
 
-  for (auto tracks_iter = tracksH->begin(); tracks_iter != tracksH->end(); ++tracks_iter) 
+  /* for (auto tracks_iter = tracksH->begin(); tracks_iter != tracksH->end(); ++tracks_iter) 
     {
       Particle::PolarLorentzVector pp;
       Particle::LorentzVector p;
@@ -550,7 +555,7 @@ void ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 
   std::cout<<"vertex position: "<<tv.position().x()<<"  "<<tv.position().y()<<std::endl;
-
+  */
   n_ele = 0;
   for (auto electrons_iter = electronsH->begin(); electrons_iter != electronsH->end(); ++electrons_iter) 
     {
@@ -713,13 +718,13 @@ for (auto muons_iter = muonsH->begin(); muons_iter != muonsH->end(); ++muons_ite
   
  if (doL1) {
     l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
-    /*	for( int r = 99; r<280; r++){
+    	for( int r = 0; r<280; r++){
 	string name ("empty");
 	bool algoName_ = false;
 	algoName_ = l1GtUtils_->getAlgNameFromBit(r,name);
 	cout << "getAlgNameFromBit = " << algoName_  << endl;
 	cout << "L1 bit number = " << r << " ; L1 bit name = " << name << endl;
-	}*/
+	}
     for( unsigned int iseed = 0; iseed < l1Seeds_.size(); iseed++ ) {
       bool l1htbit = 0;	
 			
