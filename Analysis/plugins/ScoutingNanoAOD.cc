@@ -734,6 +734,7 @@ for (auto muons_iter = muonsH->begin(); muons_iter != muonsH->end(); ++muons_ite
       }
  }
 
+ ScoutingNanoAOD::clearVars();
 
  tree->Fill();	
 	
