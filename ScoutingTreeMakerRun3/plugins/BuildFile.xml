@@ -1,0 +1,13 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/ParameterSet"/> 
+<use name="FWCore/Utilities"/> 
+<use name="FWCore/Common"/> 
+<use name="DataFormats/Common"/>
+<use name="DataFormats/HLTReco"/>
+<use name="DataFormats/Scouting"/>
+<use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/PatCandidates"/>
+<use name="L1Trigger/L1TGlobal"/>
+<use name="DataFormats/L1TGlobal"/>
+<use name="HLTrigger/HLTcore"/>
+<flags EDM_PLUGIN="1"/>
