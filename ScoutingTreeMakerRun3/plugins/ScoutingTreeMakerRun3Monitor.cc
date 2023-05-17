@@ -58,7 +58,6 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h" 
 
 #include "DataFormats/PatCandidates/interface/Muon.h"
-
 //
 // class declaration
 //
@@ -118,7 +117,6 @@ private:
   int   id1, id2;
   float rho;
   float pfIso;
-  std::vector<float> v_pfIso;
   float dr_matching_1;
   float dr_matching_2;
   int   nScoutingMuons;
@@ -126,6 +124,16 @@ private:
   float pt1_scout, pt2_scout;
   float mass_scout;
   float ptmm_scout;
+
+
+  std::vector<bool> pfIsoWP;
+  /* std::vector<std::string> pfIsoWP;
+  pfIsoWP.push_back("PFIsoLoose");
+  pfIsoWP.push_back("PFIsoMedium");
+  pfIsoWP.push_back("PFIsoTight");
+  pfIsoWP.push_back("PFIsoVeryTight"); 
+  std::map<std::string, bool> pfIsoWPMap; */
+  std::vector<bool> muID;
 };
 
 //
@@ -195,21 +203,42 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   int nOfflineMuons=0;
   vector<int> idx;
   int j=0;
-  
-  double PUCorr = 0.0;
 
   for (auto muons_iter = offlineMuonsH->begin(); muons_iter != offlineMuonsH->end(); ++muons_iter) {
-    if (muons_iter->pt()>3 && muons_iter->isMediumMuon() && abs(muons_iter->eta())<1.9) {
-      //pfIso = muons_iter->pfIsolationR03().sumChargedHadronPt + max(muons_iter->pfIsolationR03().sumNeutralHadronEt + muons_iter->pfIsolationR03().sumPhotonEt - muons_iter->pfIsolationR03().sumPUPt/2, 0.0)) / muons_iter->pt();
-      PUCorr = 0.5*muons_iter->puChargedHadronIso();
-      pfIso = (muons_iter->chargedHadronIso() + std::max(muons_iter->photonIso() + muons_iter->neutralHadronIso() - PUCorr, 0.0))/muons_iter->pt();
-      std::cout << "----- pfIso: " << pfIso << endl;
-      //if (muons_iter->pt()>3 && muons_iter->isMediumMuon() && muons_iter->relIso() < 0.15 && abs(muons_iter->eta())<1.9) {
-	//cout<<"offline muon pt: "<<muons_iter->pt()<<" id: "<<muons_iter->isMediumMuon()<<" eta: "<<muons_iter->eta()<<endl;
-	nOfflineMuons+=1;
-	idx.push_back(j);
-      }
-      j+=1;
+    if (muons_iter->pt()>3 &&  abs(muons_iter->eta())<1.9) {
+    //if (muons_iter->pt()>3 && muons_iter->isMediumMuon() && abs(muons_iter->eta())<1.9) {
+
+      // Compute the pfIso for the muon. Note: PUCorr = 0.5*muons_iter->puChargedHadronIso()
+      // -----------------------------------------------------------------------------------
+      pfIso = (muons_iter->chargedHadronIso() + std::max(muons_iter->photonIso() + muons_iter->neutralHadronIso() - 0.5*muons_iter->puChargedHadronIso(), 0.0))/muons_iter->pt();
+      //std::cout << "----- pfIso: " << pfIso << endl;
+
+      // Filling a vector of boolean to save the decision for various WP:
+      // 0 PFIsoLoose, 1 PFIsoMedium, 2 PFIsoTight, 3 PFIsoVeryTight
+      // ----------------------------------------------------------------
+      //pfIsoWP.push_back(muons_iter->PFIsoLoose);
+      //pfIsoWP.push_back(muons_iter->PFIsoMedium);
+      //pfIsoWP.push_back(muons_iter->PFIsoTight);
+      //pfIsoWP.push_back(muons_iter->PFIsoVeryTight);
+
+      // Saving Muon ID info for various WP:
+      // 0 isLooseMuon, 1 isMediumMuon, 2 isTightMuon
+      // ----------------------------------------------------------------
+      muID.push_back(muons_iter->isLooseMuon());
+      muID.push_back(muons_iter->isMediumMuon());
+      //muID.push_back(muons_iter->isTightMuon());
+
+      //std::cout << "----- ID Loose: "  << muons_iter->isLooseMuon() << endl;
+      //std::cout << "----- ID Medium: " << muons_iter->isMediumMuon() << endl;
+      //std::cout << "----- ID Tight: "  << muons_iter->isTightMuon() << endl;
+
+      //cout<<"offline muon pt: "<<muons_iter->pt()<<" id: "<<muons_iter->isMediumMuon()
+      //                         <<" eta: "<<muons_iter->eta()<<" pfIso: " << pfIso <<endl;
+
+      nOfflineMuons+=1;
+      idx.push_back(j);
+    }
+    j+=1;
   }
   
   if (idx.size()<2) {/*cout<<"failed offline muons"<<endl;*/ return;}
@@ -231,7 +260,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   // NOTE: No selection on the Monitoring seeds
   // -------------------------------------------
   //bool passMonitor=false; 
-  bool passScouting=false; 
+  //bool passScouting=false; 
   if (doL1) {
       l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
       /*for(unsigned int r = 0; r<100; r++){
@@ -245,7 +274,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
           bool l1htbit = 0;
           l1GtUtils_->getFinalDecisionByName(string(l1Seeds_[iseed]), l1htbit);
           l1Result_.push_back( l1htbit );
-          if (l1htbit) passScouting=true; // No selection on the Scouting seeds
+          //if (l1htbit) passScouting=true; // No selection on the Scouting seeds
       }
       for( unsigned int iseed = 0; iseed < l1MonitorSeeds_.size(); iseed++ ) {
           bool l1htbit = 0;
@@ -255,7 +284,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
       }
   }
   //if (!passMonitor) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Monitoring seeds
-  if (!passScouting) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Scouting seeds
+  //if (!passScouting) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Scouting seeds
     
   Handle<double> rhoH;
   iEvent.getByToken(rhoToken, rhoH);
@@ -287,19 +316,15 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   // Checking the muon matching based on dR //                                                                                      
   // -----------------------------------------
   if (muonsH->at(idx_scout[0]).pt() > muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())
-                          + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())
-                          + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi()) );
+    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi()) );
+    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi()) );
     //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
     //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
 
   }
   else if (muonsH->at(idx_scout[0]).pt() < muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())
-                          + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())
-                          + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi()) );
+    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi()) );
+    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi()) );
     //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
     //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
   }
@@ -390,10 +415,12 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("id1"                 , &id1                          , "id1/I");
     tree->Branch("id2"                 , &id2                          , "id2/I");
     tree->Branch("rho"                 , &rho                          , "rho/F");
+    tree->Branch("pfIso"               , &pfIso                        , "pfIso/F");
+    tree->Branch("muID", "std::vector<bool>"                           ,&muID, 32000, 0);
     tree->Branch("l1Result", "std::vector<bool>"                       ,&l1Result_, 32000, 0);
     tree->Branch("l1Result_mon", "std::vector<bool>"                   ,&l1Result_mon_, 32000, 0);
     tree->Branch("nScoutingMuons", &nScoutingMuons                     , "nScoutingMuons/I");
-    tree->Branch("nScoutingMuons_matched", &nScoutingMuons_matched     , "nScoutingMuons_matched/I");                                 
+    //tree->Branch("nScoutingMuons_matched", &nScoutingMuons_matched     , "nScoutingMuons_matched/I");                                 
     tree->Branch("pt1_scout"           , &pt1_scout                    , "pt1_scout/F");                                    
     tree->Branch("pt2_scout"           , &pt2_scout                    , "pt2_scout/F");                                      
     tree->Branch("mass_scout"          , &mass_scout                   , "mass_scout/F");                                          
