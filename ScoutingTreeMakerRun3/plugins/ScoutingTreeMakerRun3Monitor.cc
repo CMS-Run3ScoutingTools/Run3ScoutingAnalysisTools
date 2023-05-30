@@ -85,7 +85,8 @@ private:
   const edm::EDGetTokenT<std::vector<Run3ScoutingMuon> >      muonsToken;
   const edm::EDGetTokenT<std::vector<pat::Muon> >             offlineMuonsToken;
   const edm::EDGetTokenT<std::vector<Run3ScoutingElectron> >  electronsToken;
-  //const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >  verticesToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    primaryVerticesToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    verticesToken;
   const edm::EDGetTokenT<double>                              rhoToken;
   const edm::EDGetTokenT<std::vector<Run3ScoutingPhoton> >    photonsToken;
   const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  pfcandsToken;
@@ -108,32 +109,43 @@ private:
   std::vector<bool>            l1Result_mon_;
   
   TTree* tree;
-  float mass;
-  float pt;
-  float dr;
+  //Defining offline variables
+  int   nScoutingMuons;
   float pt1, pt2;
   float eta1, eta2;
   float phi1, phi2;
   int   id1, id2;
   float rho;
-  float pfIso;
-  float dr_matching_1;
-  float dr_matching_2;
-  int   nScoutingMuons;
-  int   nScoutingMuons_matched;
+  float pfIso1;
+  float pfIso2;
+  std::vector<bool> mu1_ID;
+  std::vector<bool> mu2_ID;
+  float mass;
+  float ptmm;
+  float drmm;
+  //Defining scouting variables: muons
+  int   nOfflineMuons;
   float pt1_scout, pt2_scout;
   float mass_scout;
   float ptmm_scout;
+  float drmm_scout;
+  //Defining scouting variables: vertices
+  int nvtx;
+  int ndvtx;
+  bool vtxMatch;
+  float avgPrimaryX;
+  float avgPrimaryY;
+  float lxy;
+  float vtxErr;
+  float IP;
+  std::vector<float> vtxX;
+  std::vector<float> vtxY;
+  std::vector<float> vtxXError;
+  std::vector<float> vtxYError;
 
-
-  std::vector<bool> pfIsoWP;
-  /* std::vector<std::string> pfIsoWP;
-  pfIsoWP.push_back("PFIsoLoose");
-  pfIsoWP.push_back("PFIsoMedium");
-  pfIsoWP.push_back("PFIsoTight");
-  pfIsoWP.push_back("PFIsoVeryTight"); 
-  std::map<std::string, bool> pfIsoWPMap; */
-  std::vector<bool> muID;
+  //Defining matching variables
+  float dr_matching_1;
+  float dr_matching_2;
 };
 
 //
@@ -148,33 +160,34 @@ private:
 // constructors and destructor
 //
 ScoutingTreeMakerRun3Monitor::ScoutingTreeMakerRun3Monitor(const edm::ParameterSet& iConfig):
-    triggerResultsTag        (iConfig.getParameter<edm::InputTag>("triggerresults")),
-    triggerResultsToken      (consumes<edm::TriggerResults>                    (triggerResultsTag)),
-    muonsToken               (consumes<std::vector<Run3ScoutingMuon> >         (iConfig.getParameter<edm::InputTag>("muons"))),
-    offlineMuonsToken        (consumes<std::vector<pat::Muon> >                (iConfig.getUntrackedParameter<edm::InputTag>("offlineMuons"))),
-    electronsToken           (consumes<std::vector<Run3ScoutingElectron> >     (iConfig.getParameter<edm::InputTag>("electrons"))),
-    //verticesToken          (consumes<std::vector<Run3ScoutingVertex> >       (iConfig.getParameter<edm::InputTag>("vertices"))),
-    rhoToken                 (consumes<double>                                 (iConfig.getParameter<edm::InputTag>("rho"))), 
-    photonsToken             (consumes<std::vector<Run3ScoutingPhoton> >       (iConfig.getParameter<edm::InputTag>("photons"))),
-    pfcandsToken             (consumes<std::vector<Run3ScoutingParticle> >     (iConfig.getParameter<edm::InputTag>("pfcands"))),
-    pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >        (iConfig.getParameter<edm::InputTag>("pfjets"))),
-    tracksToken              (consumes<std::vector<Run3ScoutingTrack> >        (iConfig.getParameter<edm::InputTag>("tracks"))),
-    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1") : false)
+  triggerResultsTag        (iConfig.getParameter<edm::InputTag>("triggerresults")),
+  triggerResultsToken      (consumes<edm::TriggerResults>                    (triggerResultsTag)),
+  muonsToken               (consumes<std::vector<Run3ScoutingMuon> >         (iConfig.getParameter<edm::InputTag>("muons"))),
+  offlineMuonsToken        (consumes<std::vector<pat::Muon> >                (iConfig.getUntrackedParameter<edm::InputTag>("offlineMuons"))),
+  electronsToken           (consumes<std::vector<Run3ScoutingElectron> >     (iConfig.getParameter<edm::InputTag>("electrons"))),
+  primaryVerticesToken     (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("primaryVertices"))),
+  verticesToken            (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("displacedVertices"))),
+  rhoToken                 (consumes<double>                                 (iConfig.getParameter<edm::InputTag>("rho"))), 
+  photonsToken             (consumes<std::vector<Run3ScoutingPhoton> >       (iConfig.getParameter<edm::InputTag>("photons"))),
+  pfcandsToken             (consumes<std::vector<Run3ScoutingParticle> >     (iConfig.getParameter<edm::InputTag>("pfcands"))),
+  pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >        (iConfig.getParameter<edm::InputTag>("pfjets"))),
+  tracksToken              (consumes<std::vector<Run3ScoutingTrack> >        (iConfig.getParameter<edm::InputTag>("tracks"))),
+  doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1") : false)
 {
-    usesResource("TFileService");
-    if (doL1) {
-        algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
-        extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
-        algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
-        l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-        l1MonitorSeeds_ = iConfig.getParameter<std::vector<std::string> >("l1MonitorSeeds");
-        l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
-    }
-    else {
-        l1Seeds_ = std::vector<std::string>();
-        l1MonitorSeeds_ = std::vector<std::string>();
-        l1GtUtils_ = 0;
-    }
+  usesResource("TFileService");
+  if (doL1) {
+    algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
+    extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
+    algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
+    l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
+    l1MonitorSeeds_ = iConfig.getParameter<std::vector<std::string> >("l1MonitorSeeds");
+    l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
+  }
+  else {
+    l1Seeds_ = std::vector<std::string>();
+    l1MonitorSeeds_ = std::vector<std::string>();
+    l1GtUtils_ = 0;
+  }
 }
 
 ScoutingTreeMakerRun3Monitor::~ScoutingTreeMakerRun3Monitor() {
@@ -190,59 +203,40 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   using namespace std;
   using namespace reco;
 
-  /*
-  Handle<vector<ScoutingVertex> > verticesH;
-  iEvent.getByToken(verticesToken, verticesH);
-  */
 
+  // ------------- //
+  // OFFLINE MUONS //
+  // ------------- //
   Handle<vector<pat::Muon> > offlineMuonsH;
   iEvent.getByToken(offlineMuonsToken, offlineMuonsH);
   
   if (offlineMuonsH->size()<2) return;
 
-  int nOfflineMuons=0;
+  nOfflineMuons=0;
   vector<int> idx;
   int j=0;
 
+  // Minimal selection on the offline muons
+  // --------------------------------------
   for (auto muons_iter = offlineMuonsH->begin(); muons_iter != offlineMuonsH->end(); ++muons_iter) {
-    if (muons_iter->pt()>3 &&  abs(muons_iter->eta())<1.9) {
-    //if (muons_iter->pt()>3 && muons_iter->isMediumMuon() && abs(muons_iter->eta())<1.9) {
-
-      // Compute the pfIso for the muon. Note: PUCorr = 0.5*muons_iter->puChargedHadronIso()
-      // -----------------------------------------------------------------------------------
-      pfIso = (muons_iter->chargedHadronIso() + std::max(muons_iter->photonIso() + muons_iter->neutralHadronIso() - 0.5*muons_iter->puChargedHadronIso(), 0.0))/muons_iter->pt();
-      //std::cout << "----- pfIso: " << pfIso << endl;
-
-      // Filling a vector of boolean to save the decision for various WP:
-      // 0 PFIsoLoose, 1 PFIsoMedium, 2 PFIsoTight, 3 PFIsoVeryTight
-      // ----------------------------------------------------------------
-      //pfIsoWP.push_back(muons_iter->PFIsoLoose);
-      //pfIsoWP.push_back(muons_iter->PFIsoMedium);
-      //pfIsoWP.push_back(muons_iter->PFIsoTight);
-      //pfIsoWP.push_back(muons_iter->PFIsoVeryTight);
-
-      // Saving Muon ID info for various WP:
-      // 0 isLooseMuon, 1 isMediumMuon, 2 isTightMuon
-      // ----------------------------------------------------------------
-      muID.push_back(muons_iter->isLooseMuon());
-      muID.push_back(muons_iter->isMediumMuon());
-      //muID.push_back(muons_iter->isTightMuon());
-
-      //std::cout << "----- ID Loose: "  << muons_iter->isLooseMuon() << endl;
-      //std::cout << "----- ID Medium: " << muons_iter->isMediumMuon() << endl;
-      //std::cout << "----- ID Tight: "  << muons_iter->isTightMuon() << endl;
-
-      //cout<<"offline muon pt: "<<muons_iter->pt()<<" id: "<<muons_iter->isMediumMuon()
-      //                         <<" eta: "<<muons_iter->eta()<<" pfIso: " << pfIso <<endl;
-
+    if (muons_iter->pt()>3 &&  abs(muons_iter->eta())<1.9) { //removing the MediumMuon ID requirement, saved later
       nOfflineMuons+=1;
       idx.push_back(j);
     }
     j+=1;
   }
   
-  if (idx.size()<2) {/*cout<<"failed offline muons"<<endl;*/ return;}
-  //cout << "idx = " << idx.size() << endl;
+  // Requiring exactly two offline muons in the event
+  // ------------------------------------------------
+  if (!(idx.size()==2)) {/*cout<<"failed offline muons"<<endl;*/ return;}
+
+  // Checking opposite charge                                                                                     
+  // ------------------------
+  int checkOSCharge = offlineMuonsH->at(idx[0]).charge() * offlineMuonsH->at(idx[1]).charge();
+  //cout<<"Check OS requirement for offline muons = " << checkOSCharge << endl; 
+  if (checkOSCharge > 0){/*cout<<"not OS pair"<<endl;*/return;}
+  //cout<<"Check OS requirement for offline muons = PASSED!" << endl; 
+
   edm::Handle<edm::TriggerResults> triggerResultsH;
   iEvent.getByToken(triggerResultsToken, triggerResultsH);
 
@@ -252,11 +246,11 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   }
 
   // Scouting path true => scouting reconstruction enabled
+  // -----------------------------------------------------
   if (!passDST) {/*cout<<"failed DST"<<endl;*/ return;}
 
   l1Result_.clear();
 
-  // -------------------------------------------
   // NOTE: No selection on the Monitoring seeds
   // -------------------------------------------
   //bool passMonitor=false; 
@@ -274,13 +268,13 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
           bool l1htbit = 0;
           l1GtUtils_->getFinalDecisionByName(string(l1Seeds_[iseed]), l1htbit);
           l1Result_.push_back( l1htbit );
-          //if (l1htbit) passScouting=true; // No selection on the Scouting seeds
+          //if (l1htbit) passScouting=true; // No selection on the Scouting seeds, selection stores
       }
       for( unsigned int iseed = 0; iseed < l1MonitorSeeds_.size(); iseed++ ) {
           bool l1htbit = 0;
           l1GtUtils_->getFinalDecisionByName(string(l1MonitorSeeds_[iseed]), l1htbit);
 	  l1Result_mon_.push_back( l1htbit );
-          //if (l1htbit) passMonitor=true; // No selection on the Monitoring seeds
+          //if (l1htbit) passMonitor=true; // No selection on the Monitoring seeds, selection stored
       }
   }
   //if (!passMonitor) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Monitoring seeds
@@ -289,116 +283,249 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   Handle<double> rhoH;
   iEvent.getByToken(rhoToken, rhoH);
 
-  //cout << "------------------------------------------" << endl;
-  //cout<<"...PASSED ALL SELECTIONS!"<<endl;
-  //cout << "------------------------------------------" << endl;
+
+  // -------------- //
+  // SCOUTING MUONS //
+  // -------------- //
 
   Handle<vector<Run3ScoutingMuon> > muonsH;
   iEvent.getByToken(muonsToken, muonsH);
-
   nScoutingMuons=0;
-  nScoutingMuons_matched=0;
   vector<int> idx_scout;
   int s=0;
+
+  // Minimal selection on the scouting muons
+  // ---------------------------------------
   for (auto muons_scout_iter = muonsH->begin(); muons_scout_iter != muonsH->end(); ++muons_scout_iter) {
     //cout<<"scouting muon pt: "<<muons_scout_iter->pt()<<" eta: "<<muons_scout_iter->eta()<<endl;                                 
     if (muons_scout_iter->pt()>3 and abs(muons_scout_iter->eta())<1.9) {
       nScoutingMuons+=1;
       idx_scout.push_back(s);
-      
     }
     s+=1;
   }
-  if (idx_scout.size()<2) {/*cout<<"failed scouting muons"<<endl;*/ return;}
-  //cout << "idx_scout = " << idx_scout.size() << "  and nScoutingMuons = " << nScoutingMuons << endl;
 
-  // -----------------------------------------
-  // Checking the muon matching based on dR //                                                                                      
-  // -----------------------------------------
-  if (muonsH->at(idx_scout[0]).pt() > muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi()) );
-    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
-    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
+  // Requiring exactly two scouting muons in the event
+  // -------------------------------------------------
+  if (!(idx_scout.size()==2)) {/*cout<<"failed scouting muons"<<endl;*/ return;}
 
+  // Checking opposite charge                                                                                     
+  // ------------------------
+  int checkOSCharge_scout = muonsH->at(idx_scout[0]).charge() * muonsH->at(idx_scout[1]).charge();
+  //cout<<"Check OS requirement for scouting muons = " << checkOSCharge << endl; 
+  if (checkOSCharge_scout > 0){/*cout<<"not OS pair"<<endl;*/return;}
+  //cout<<"Check OS requirement for scouting muons = PASSED!" << endl; 
+
+
+  // ---------------- //
+  // VERTEX SELECTION //
+  // ---------------- //
+
+  // Checking on primary vertices to take the average
+  // ------------------------------------------------
+  Handle<vector<Run3ScoutingVertex> > primaryVerticesH;
+  iEvent.getByToken(primaryVerticesToken, primaryVerticesH);
+
+  vtxX.clear();
+  vtxY.clear();
+  vtxXError.clear();
+  vtxYError.clear();
+
+  nvtx = 0;
+  for (auto vtx_iter = primaryVerticesH->begin(); vtx_iter != primaryVerticesH->end(); ++vtx_iter) {
+    //std::cout<<"primary x: "<<vtx_iter->x() <<" y: "<<  vtx_iter->y()<<" ex: "<<vtx_iter->xError()<<" ey: "<<vtx_iter->yError()<<std::endl;
+    nvtx++;
+    vtxX.push_back(vtx_iter->x());   
+    vtxY.push_back(vtx_iter->y());        
+    vtxXError.push_back(vtx_iter->xError());        
+    vtxYError.push_back(vtx_iter->yError());           
   }
-  else if (muonsH->at(idx_scout[0]).pt() < muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi()) );
-    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
-    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
+
+  avgPrimaryX = 0;
+  if (!vtxX.empty()) {
+    avgPrimaryX = std::reduce(vtxX.begin(), vtxX.end(), 0.0) / vtxX.size();
   }
-  else {
-    cout << "NOTE: dR for the matching has not been computed!" << endl;
+
+  avgPrimaryY = 0;
+  if (!vtxY.empty()) {
+    avgPrimaryY = std::reduce(vtxY.begin(), vtxY.end(), 0.0) / vtxY.size();
   }
+
+  //std::cout<<"avgPrimaryX: "<<avgPrimaryX<<" avgPrimaryY: "<<avgPrimaryY<<std::endl;
+
+  // Checking on displaced vertices
+  // ------------------------------
+  Handle<vector<Run3ScoutingVertex> > verticesH;
+  iEvent.getByToken(verticesToken, verticesH);
+
+  lxy=0;
+  vtxErr=0;
+  IP=0;
+
+  std::vector<int> vtxIndx1 = (muonsH->at(idx_scout[0])).vtxIndx();
+  std::vector<int> vtxIndx2 = (muonsH->at(idx_scout[1])).vtxIndx();
+
+  //std::cout<<"vtxIndx1 size: "<<vtxIndx1.size()<<" vtxIndx2 size: "<<vtxIndx2.size()<<" num vtx: "<<verticesH->size()<<std::endl;
+      
+  ndvtx = verticesH->size();
+  vtxMatch = vtxIndx1.size() > 0 && vtxIndx2.size() > 0 && vtxIndx1[0] == 0 && vtxIndx2[0] == 0 && ndvtx > 0;
+      
+  if (vtxMatch) {
+    //std::cout<<"vtxIndx12: "<<(muonsH->at(idx_scout[0])).vtxIndx()[0]<<" "<<(muonsH->at(idx_scout[1])).vtxIndx()[0]<<endl;
+
+    auto vtx = verticesH->begin();
+    double dx = (vtx->x()) - avgPrimaryX;
+    double dy = (vtx->y()) - avgPrimaryY;
+
+    //std::cout<<"x: "<<vtx->x()<<" y: "<<vtx->y()<<std::endl;
+
+    lxy = sqrt(dx*dx + dy*dy);
+    vtxErr = sqrt(dx*dx*(vtx->xError())*(vtx->xError()) + dy*dy*(vtx->yError())*(vtx->yError())) / lxy;
+    IP = lxy/vtxErr;
+  }
+
+  //std::cout<<"lxy: "<<lxy<<" vtxErr: "<<vtxErr<<" IP: "<<IP<<std::endl;
+
 
   //cout << "Filling offline muon quantities!" << endl;
-    pt1=offlineMuonsH->at(idx[0]).pt();
-    pt2=offlineMuonsH->at(idx[1]).pt();
-    eta1=offlineMuonsH->at(idx[0]).eta();
-    eta2=offlineMuonsH->at(idx[1]).eta();
-    phi1=offlineMuonsH->at(idx[0]).phi();
-    phi2=offlineMuonsH->at(idx[1]).phi();
-    id1=offlineMuonsH->at(idx[0]).pdgId();
-    id2=offlineMuonsH->at(idx[1]).pdgId();
-    
-    TLorentzVector mu1;
-    mu1.SetPtEtaPhiM(pt1,eta1,phi1,0.105658);
-    TLorentzVector mu2;
-    mu2.SetPtEtaPhiM(pt2,eta2,phi2,0.105658);
-    TLorentzVector dimu = mu1+mu2;
-    mass=dimu.M();
-    pt=dimu.Pt();
-    dr=mu1.DeltaR(mu2);
-    
-    rho=*rhoH;
-    
-    //cout << "Filling scouting muon quantities!" << endl;
-    TLorentzVector mu1_scout;
-    TLorentzVector mu2_scout;
-    
-    //cout << "%% muonsH->at(idx_scout[0]).pt() = " << muonsH->at(idx_scout[0]).pt() << endl;
-    //cout << "%% muonsH->at(idx_scout[1]).pt() = " << muonsH->at(idx_scout[1]).pt() << endl;
-    
-    if (muonsH->at(idx_scout[0]).pt() > muonsH->at(idx_scout[1]).pt()) {
-      //cout << "%%% Entering the first if"  << endl;
-      pt1_scout=muonsH->at(idx_scout[0]).pt();
-      pt2_scout=muonsH->at(idx_scout[1]).pt();
-      mu1_scout.SetPtEtaPhiM(pt1_scout,muonsH->at(idx_scout[0]).eta(),muonsH->at(idx_scout[0]).phi(),0.105658);
-      mu2_scout.SetPtEtaPhiM(pt2_scout,muonsH->at(idx_scout[1]).eta(),muonsH->at(idx_scout[1]).phi(),0.105658);
-      //cout << "%%% pt1_scout = " << muonsH->at(idx_scout[0]).pt() << endl;
-      //cout << "%%% pt2_scout = " << muonsH->at(idx_scout[1]).pt() << endl;
-    }
-    else if (muonsH->at(idx_scout[0]).pt() < muonsH->at(idx_scout[1]).pt()) {
-      //cout << "%%% Entering the second if"  << endl;
-      pt1_scout=muonsH->at(idx_scout[1]).pt();
-      pt2_scout=muonsH->at(idx_scout[0]).pt();
-      mu1_scout.SetPtEtaPhiM(pt1_scout,muonsH->at(idx_scout[1]).eta(),muonsH->at(idx_scout[1]).phi(),0.105658);
-      mu2_scout.SetPtEtaPhiM(pt2_scout,muonsH->at(idx_scout[0]).eta(),muonsH->at(idx_scout[0]).phi(),0.105658);
-      //cout << "%%% pt1_scout = " << muonsH->at(idx_scout[1]).pt() << endl;
-      //cout << "%%% pt2_scout = " << muonsH->at(idx_scout[0]).pt() << endl;
-    }
-    
-    TLorentzVector dimu_scout = mu1_scout+mu2_scout;
-    mass_scout=dimu_scout.M();
-    ptmm_scout=dimu_scout.Pt();
-    
-    if (dr_matching_1 < 0.2 and dr_matching_2 < 0.2){
-      nScoutingMuons_matched+=2;
-      tree->Fill();
-      return;
-    }
+  pt1=offlineMuonsH->at(idx[0]).pt();
+  pt2=offlineMuonsH->at(idx[1]).pt();
+  eta1=offlineMuonsH->at(idx[0]).eta();
+  eta2=offlineMuonsH->at(idx[1]).eta();
+  phi1=offlineMuonsH->at(idx[0]).phi();
+  phi2=offlineMuonsH->at(idx[1]).phi();
+  id1=offlineMuonsH->at(idx[0]).pdgId();
+  id2=offlineMuonsH->at(idx[1]).pdgId();
+  
+  // Compute the pfIso for the muon. Note: PUCorr = 0.5*muons_iter->puChargedHadronIso()
+  // -----------------------------------------------------------------------------------
+  pfIso1 = (offlineMuonsH->at(idx[0]).chargedHadronIso() + std::max(offlineMuonsH->at(idx[0]).photonIso() + offlineMuonsH->at(idx[0]).neutralHadronIso() - 0.5*offlineMuonsH->at(idx[0]).puChargedHadronIso(), 0.0))/offlineMuonsH->at(idx[0]).pt();
+  pfIso2 = (offlineMuonsH->at(idx[1]).chargedHadronIso() + std::max(offlineMuonsH->at(idx[1]).photonIso() + offlineMuonsH->at(idx[1]).neutralHadronIso() - 0.5*offlineMuonsH->at(idx[1]).puChargedHadronIso(), 0.0))/offlineMuonsH->at(idx[1]).pt();
+  //std::cout << "----- pfIso: " << pfIso << endl;
+  
+  // Saving Muon ID info for various WP:
+  // 0 isLooseMuon, 1 isMediumMuon, 2 isTightMuon
+  // ----------------------------------------------------------------
+  mu1_ID.push_back(offlineMuonsH->at(idx[0]).isLooseMuon());
+  mu1_ID.push_back(offlineMuonsH->at(idx[0]).isMediumMuon());
+  mu2_ID.push_back(offlineMuonsH->at(idx[1]).isLooseMuon());
+  mu2_ID.push_back(offlineMuonsH->at(idx[1]).isMediumMuon());  
+  //std::cout << "----- ID Loose: "  << muons_iter->isLooseMuon() << endl;
+  //std::cout << "----- ID Medium: " << muons_iter->isMediumMuon() << endl;
+  //std::cout << "----- ID Tight: "  << muons_iter->isTightMuon() << endl;
+  
+  TLorentzVector mu1;
+  mu1.SetPtEtaPhiM(pt1,eta1,phi1,0.105658);
+  TLorentzVector mu2;
+  mu2.SetPtEtaPhiM(pt2,eta2,phi2,0.105658);
+  TLorentzVector dimu = mu1+mu2;
+  mass=dimu.M();
+  ptmm=dimu.Pt();
+  drmm=mu1.DeltaR(mu2);
+  
+  rho=*rhoH;
 
-    /*if (dr_matching_1 < 0.2 and dr_matching_2 < 0.2){
-    nScoutingMuons_matched+=2;
-    cout << "------------------------------------------" << endl;
-    cout<<"...MATCHING!"<<endl;
-    cout << "------------------------------------------" << endl;
+  //cout << "                            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                      " <<endl;
+  //cout << "%%% pt1_scout = " << muonsH->at(idx_scout[0]).pt() << endl;
+  //cout << "%%% pt2_scout = " << muonsH->at(idx_scout[1]).pt() << endl;
+
+    
+  // Checking the muon matching based on dR                                                  
+  // --------------------------------------
+  float dr1 = 999.;
+  int idx1_scout = -1;
+  dr_matching_1 = 999.;
+
+  float dr2 = 999.;
+  int idx2_scout = -1;
+  dr_matching_2 = 999.; 
+
+  /*
+  cout<<"############ BEFORE #############"<<endl;
+  cout<<"dr_matching1 = "<<dr_matching_1<<"  and dr_matching2 = "<<dr_matching_2<<endl;
+  cout<<"#################################"<<endl;
+  */
+  for (int mu_dr1=0; mu_dr1 < 2; mu_dr1++){
+    /*
+    cout << "---------- Loop on the scouting muons for mu0: checking mu " << mu_dr1 << endl;
+    cout << "scoutMu pt: " << muonsH->at(idx_scout[mu_dr1]).pt()<<endl;
+    cout << "scoutMu eta: " << muonsH->at(idx_scout[mu_dr1]).eta()<<endl;
+    cout << "scoutMu phi: " << muonsH->at(idx_scout[mu_dr1]).phi()<<endl;
+    */
+    dr1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[mu_dr1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[mu_dr1]).eta()) 
+		   + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[mu_dr1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[mu_dr1]).phi()) );
+    //cout<<"dR = "<<dr1<<endl;
+    if (dr1 < dr_matching_1) {
+      dr_matching_1 = dr1;
+      idx1_scout = mu_dr1;
+    }
+    //cout<<" ** AFTER[1] dR = "<<dr_matching_1<<" and idx1_scout = "<< idx1_scout << endl;
+  }
+  
+  for (int mu_dr2=0; mu_dr2 < 2; mu_dr2++){
+    /*
+    cout << "---------- Loop on the scouting muons for mu1: checking mu " << mu_dr2 << endl;
+    cout << "scoutMu pt: " << muonsH->at(idx_scout[mu_dr2]).pt()<<endl;
+    cout << "scoutMu eta: " << muonsH->at(idx_scout[mu_dr2]).eta()<<endl;
+    cout << "scoutMu phi: " << muonsH->at(idx_scout[mu_dr2]).phi()<<endl;
+    */
+    dr2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[mu_dr2]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[mu_dr2]).eta()) 
+	       + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[mu_dr2]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[mu_dr2]).phi()) );
+    //cout<<"dR = "<<dr2<<endl;
+    if (dr2 < dr_matching_2) {
+      dr_matching_2 = dr2;
+      idx2_scout = mu_dr2;
+    }
+    //cout<<" ** AFTER[2] dR = "<<dr_matching_2<<" and idx2_scout = "<< idx2_scout << endl;
+  }
+  /*
+  cout<<"############ AFTER #############"<<endl;
+  cout<<"dr_matching1 = "<<dr_matching_1<<"  and dr_matching2 = "<<dr_matching_2<<endl;
+  cout<<"idx1_scout = "<<idx1_scout<<"  and idx2_scout = "<<idx2_scout<<endl;
+  cout<<"#################################"<<endl;
+   
+  cout<<">>>>>>>>>> scouting muon pt1: "<< muonsH->at(idx_scout[idx1_scout]).pt() << endl;                                 
+  cout<<">>>>>>>>>> scouting muon pt2: "<< muonsH->at(idx_scout[idx2_scout]).pt() << endl;                                 
+
+  cout<<">>>>>>>>>> offline muon pt1: "<< offlineMuonsH->at(idx[0]).pt() << endl;                                 
+  cout<<">>>>>>>>>> offline muon pt2: "<< offlineMuonsH->at(idx[1]).pt() << endl;                                 
+  */
+
+  //if(dr_matching_1 > 0.2 || dr_matching_2 > 0.2){/*cout<<"no matching!"<<endl;*/return;};
+  //cout << "-------------------------------PASSED dR Matching-------------------------"<<endl;
+   
+  if (idx1_scout == idx2_scout){
+    if (dr_matching_1 < dr_matching_2) {idx1_scout = 0; idx2_scout = 1;}
+    else if (dr_matching_1 > dr_matching_2) {idx1_scout = 1; idx2_scout = 0;}
+    //cout<<"AFTER THE FINAL FIX WE STORE: idx1_scout = "<<idx1_scout<<"  and idx2_scout = "<<idx2_scout<<endl;
+    //cout<<"AFTER THE FINAL FIX WE STORE: pt1_scout = "<< muonsH->at(idx1_scout).pt() <<"  and pt2_scout = "<< muonsH->at(idx2_scout).pt() <<endl;
+  }
+
+  // ------------------------------
+  // Filling Scouting quantities //                                                                                      
+  // ------------------------------
+  TLorentzVector mu1_scout;
+  TLorentzVector mu2_scout;
+  pt1_scout=muonsH->at(idx1_scout).pt();
+  pt2_scout=muonsH->at(idx2_scout).pt();
+  mu1_scout.SetPtEtaPhiM(pt1_scout,muonsH->at(idx1_scout).eta(),muonsH->at(idx1_scout).phi(),0.105658);
+  mu2_scout.SetPtEtaPhiM(pt2_scout,muonsH->at(idx2_scout).eta(),muonsH->at(idx2_scout).phi(),0.105658);
+
+  TLorentzVector dimu_scout = mu1_scout+mu2_scout;
+  mass_scout=dimu_scout.M();
+  ptmm_scout=dimu_scout.Pt();
+  drmm_scout=mu1_scout.DeltaR(mu2_scout);
+
+  /*cout<<"############ Checking the final angular separation #############"<<endl;
+  cout<<"DIMUON dR = " << drmm << endl;
+  cout<<"Scouting DIMUON dR = " << drmm_scout << endl;
+  cout<<"################################################################"<<endl;
+  */
+  tree->Fill();
+  /*if (dr_matching_1 < 0.2 and dr_matching_2 < 0.2){
     tree->Fill();
-    //idx.clear();
-    //idx_scout.clear();
+    return;
     }*/
-    //###### tree->Fill();
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -406,8 +533,8 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     edm::Service<TFileService> fs;
     tree = fs->make<TTree>("tree"      , "tree");
     tree->Branch("mass"                , &mass                         , "mass/F");
-    tree->Branch("pt"                  , &pt                           , "pt/F");
-    tree->Branch("dr"                  , &dr                           , "dr/F");
+    tree->Branch("ptmm"                , &ptmm                         , "ptmm/F");
+    tree->Branch("drmm"                , &drmm                         , "drmm/F");
     tree->Branch("pt1"                 , &pt1                          , "pt1/F");
     tree->Branch("pt2"                 , &pt2                          , "pt2/F");
     tree->Branch("eta1"                , &eta1                         , "eta1/F");
@@ -415,17 +542,24 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("id1"                 , &id1                          , "id1/I");
     tree->Branch("id2"                 , &id2                          , "id2/I");
     tree->Branch("rho"                 , &rho                          , "rho/F");
-    tree->Branch("pfIso"               , &pfIso                        , "pfIso/F");
-    tree->Branch("muID", "std::vector<bool>"                           ,&muID, 32000, 0);
+    tree->Branch("pfIso1"              , &pfIso1                       , "pfIso1/F");
+    tree->Branch("pfIso2"              , &pfIso2                       , "pfIso2/F");
+    tree->Branch("mu1_ID", "std::vector<bool>"                         ,&mu1_ID, 32000, 0);
+    tree->Branch("mu2_ID", "std::vector<bool>"                         ,&mu2_ID, 32000, 0);
     tree->Branch("l1Result", "std::vector<bool>"                       ,&l1Result_, 32000, 0);
     tree->Branch("l1Result_mon", "std::vector<bool>"                   ,&l1Result_mon_, 32000, 0);
+    tree->Branch("nOfflineMuons", &nOfflineMuons                       , "nOfflineMuons/I");
     tree->Branch("nScoutingMuons", &nScoutingMuons                     , "nScoutingMuons/I");
-    //tree->Branch("nScoutingMuons_matched", &nScoutingMuons_matched     , "nScoutingMuons_matched/I");                                 
     tree->Branch("pt1_scout"           , &pt1_scout                    , "pt1_scout/F");                                    
     tree->Branch("pt2_scout"           , &pt2_scout                    , "pt2_scout/F");                                      
     tree->Branch("mass_scout"          , &mass_scout                   , "mass_scout/F");                                          
     tree->Branch("ptmm_scout"          , &ptmm_scout                   , "ptmm_scout/F");                           
-
+    tree->Branch("drmm_scout"          , &drmm_scout                   , "drmm_scout/F");
+    tree->Branch("lxy"                 , &lxy                          , "lxy/F"     );
+    tree->Branch("vtxErr"              , &vtxErr                       , "vtxErr/F"  );
+    tree->Branch("IP"                  , &IP                           , "IP/F"      );
+    tree->Branch("dr_matching_1"       , &dr_matching_1                , "dr_matching_1/F");
+    tree->Branch("dr_matching_2"       , &dr_matching_2                , "dr_matching_2/F");
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -484,3 +618,26 @@ void ScoutingTreeMakerRun3Monitor::fillDescriptions(edm::ConfigurationDescriptio
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(ScoutingTreeMakerRun3Monitor);
+
+
+
+/* ORIGINAL dR matching:
+ //--------------------
+  if (muonsH->at(idx_scout[0]).pt() > muonsH->at(idx_scout[1]).pt()) {
+    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi()) );
+    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi()) );
+    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
+    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
+
+  }
+  else if (muonsH->at(idx_scout[0]).pt() < muonsH->at(idx_scout[1]).pt()) {
+    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi()) );
+    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi()) );
+    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
+    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
+  }
+  else {
+    cout << "NOTE: dR for the matching has not been computed!" << endl;
+  }
+  
+*/

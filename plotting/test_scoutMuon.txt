@@ -1,2 +1,0 @@
-root://cmsxrootd.fnal.gov//store/user/elfontan/ScoutingPFMonitor/monitorSkim_13Feb2023_2022/230505_183721/0000/scoutMonitor_998.root
-root://cmsxrootd.fnal.gov//store/user/elfontan/ScoutingPFMonitor/monitorSkim_13Feb2023_2022/230505_183721/0000/scoutMonitor_996.root
