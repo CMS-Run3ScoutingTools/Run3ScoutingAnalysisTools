@@ -312,9 +312,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   // Checking opposite charge                                                                                     
   // ------------------------
   int checkOSCharge_scout = muonsH->at(idx_scout[0]).charge() * muonsH->at(idx_scout[1]).charge();
-  //cout<<"Check OS requirement for scouting muons = " << checkOSCharge << endl; 
   if (checkOSCharge_scout > 0){/*cout<<"not OS pair"<<endl;*/return;}
-  //cout<<"Check OS requirement for scouting muons = PASSED!" << endl; 
 
 
   // ---------------- //
@@ -383,6 +381,11 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
     vtxErr = sqrt(dx*dx*(vtx->xError())*(vtx->xError()) + dy*dy*(vtx->yError())*(vtx->yError())) / lxy;
     IP = lxy/vtxErr;
   }
+  else{
+    lxy = -999.;
+    vtxErr = -999.;
+    IP = -999.;
+  }
 
   //std::cout<<"lxy: "<<lxy<<" vtxErr: "<<vtxErr<<" IP: "<<IP<<std::endl;
 
@@ -405,14 +408,11 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   
   // Saving Muon ID info for various WP:
   // 0 isLooseMuon, 1 isMediumMuon, 2 isTightMuon
-  // ----------------------------------------------------------------
+  // --------------------------------------------
   mu1_ID.push_back(offlineMuonsH->at(idx[0]).isLooseMuon());
   mu1_ID.push_back(offlineMuonsH->at(idx[0]).isMediumMuon());
   mu2_ID.push_back(offlineMuonsH->at(idx[1]).isLooseMuon());
   mu2_ID.push_back(offlineMuonsH->at(idx[1]).isMediumMuon());  
-  //std::cout << "----- ID Loose: "  << muons_iter->isLooseMuon() << endl;
-  //std::cout << "----- ID Medium: " << muons_iter->isMediumMuon() << endl;
-  //std::cout << "----- ID Tight: "  << muons_iter->isTightMuon() << endl;
   
   TLorentzVector mu1;
   mu1.SetPtEtaPhiM(pt1,eta1,phi1,0.105658);
@@ -497,13 +497,10 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   if (idx1_scout == idx2_scout){
     if (dr_matching_1 < dr_matching_2) {idx1_scout = 0; idx2_scout = 1;}
     else if (dr_matching_1 > dr_matching_2) {idx1_scout = 1; idx2_scout = 0;}
-    //cout<<"AFTER THE FINAL FIX WE STORE: idx1_scout = "<<idx1_scout<<"  and idx2_scout = "<<idx2_scout<<endl;
-    //cout<<"AFTER THE FINAL FIX WE STORE: pt1_scout = "<< muonsH->at(idx1_scout).pt() <<"  and pt2_scout = "<< muonsH->at(idx2_scout).pt() <<endl;
   }
 
-  // ------------------------------
-  // Filling Scouting quantities //                                                                                      
-  // ------------------------------
+  // Filling Scouting quantities 
+  // ---------------------------
   TLorentzVector mu1_scout;
   TLorentzVector mu2_scout;
   pt1_scout=muonsH->at(idx1_scout).pt();
@@ -522,10 +519,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   cout<<"################################################################"<<endl;
   */
   tree->Fill();
-  /*if (dr_matching_1 < 0.2 and dr_matching_2 < 0.2){
-    tree->Fill();
-    return;
-    }*/
+
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -544,12 +538,14 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("rho"                 , &rho                          , "rho/F");
     tree->Branch("pfIso1"              , &pfIso1                       , "pfIso1/F");
     tree->Branch("pfIso2"              , &pfIso2                       , "pfIso2/F");
-    tree->Branch("mu1_ID", "std::vector<bool>"                         ,&mu1_ID, 32000, 0);
-    tree->Branch("mu2_ID", "std::vector<bool>"                         ,&mu2_ID, 32000, 0);
-    tree->Branch("l1Result", "std::vector<bool>"                       ,&l1Result_, 32000, 0);
-    tree->Branch("l1Result_mon", "std::vector<bool>"                   ,&l1Result_mon_, 32000, 0);
-    tree->Branch("nOfflineMuons", &nOfflineMuons                       , "nOfflineMuons/I");
-    tree->Branch("nScoutingMuons", &nScoutingMuons                     , "nScoutingMuons/I");
+    tree->Branch("mu1_ID", "std::vector<bool>"                         , &mu1_ID, 32000, 0);
+    tree->Branch("mu2_ID", "std::vector<bool>"                         , &mu2_ID, 32000, 0);
+    tree->Branch("l1Result", "std::vector<bool>"                       , &l1Result_, 32000, 0);
+    tree->Branch("l1Result_mon", "std::vector<bool>"                   , &l1Result_mon_, 32000, 0);
+    tree->Branch("nOfflineMuons"       , &nOfflineMuons                , "nOfflineMuons/I");
+    tree->Branch("nScoutingMuons"      , &nScoutingMuons               , "nScoutingMuons/I");
+    tree->Branch("nvtx"                , &nvtx                         , "nvtx/I");
+    tree->Branch("ndvtx"                , &ndvtx                         , "ndvtx/I");
     tree->Branch("pt1_scout"           , &pt1_scout                    , "pt1_scout/F");                                    
     tree->Branch("pt2_scout"           , &pt2_scout                    , "pt2_scout/F");                                      
     tree->Branch("mass_scout"          , &mass_scout                   , "mass_scout/F");                                          
@@ -557,6 +553,7 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("drmm_scout"          , &drmm_scout                   , "drmm_scout/F");
     tree->Branch("lxy"                 , &lxy                          , "lxy/F"     );
     tree->Branch("vtxErr"              , &vtxErr                       , "vtxErr/F"  );
+    tree->Branch("vtxMatch"            , &vtxMatch                     , "vtxMatch/B");
     tree->Branch("IP"                  , &IP                           , "IP/F"      );
     tree->Branch("dr_matching_1"       , &dr_matching_1                , "dr_matching_1/F");
     tree->Branch("dr_matching_2"       , &dr_matching_2                , "dr_matching_2/F");
@@ -618,26 +615,3 @@ void ScoutingTreeMakerRun3Monitor::fillDescriptions(edm::ConfigurationDescriptio
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(ScoutingTreeMakerRun3Monitor);
-
-
-
-/* ORIGINAL dR matching:
- //--------------------
-  if (muonsH->at(idx_scout[0]).pt() > muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[0]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[1]).phi()) );
-    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
-    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
-
-  }
-  else if (muonsH->at(idx_scout[0]).pt() < muonsH->at(idx_scout[1]).pt()) {
-    dr_matching_1 = sqrt( (offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta())*(offlineMuonsH->at(idx[0]).eta() - muonsH->at(idx_scout[1]).eta()) + (offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi())*(offlineMuonsH->at(idx[0]).phi() - muonsH->at(idx_scout[1]).phi()) );
-    dr_matching_2 = sqrt( (offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta())*(offlineMuonsH->at(idx[1]).eta() - muonsH->at(idx_scout[0]).eta()) + (offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi())*(offlineMuonsH->at(idx[1]).phi() - muonsH->at(idx_scout[0]).phi()) );
-    //cout << "dr_matching_1 = " << dr_matching_1 << " with offline mu eta: " << offlineMuonsH->at(idx[0]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[1]).eta() << endl;
-    //cout << "dr_matching_2 = " << dr_matching_2 << " with offline mu eta: " << offlineMuonsH->at(idx[1]).eta() << " and scout mu eta: " << muonsH->at(idx_scout[0]).eta() << endl;
-  }
-  else {
-    cout << "NOTE: dR for the matching has not been computed!" << endl;
-  }
-  
-*/

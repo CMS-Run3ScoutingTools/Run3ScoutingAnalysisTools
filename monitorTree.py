@@ -15,13 +15,13 @@ process.maxEvents = cms.untracked.PSet(
 
 process.source = cms.Source("PoolSource",                            
                             fileNames = cms.untracked.vstring(
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/2629b39a-a626-4774-be78-e1e6783b755c.root",
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/6c45ebf6-052c-456f-b085-1def7f38830c.root",
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/71a94f03-6acf-46fb-af77-5e29709199c3.root",
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/22266449-6097-4832-9eef-92c0c5e0f8dc.root",
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/27f02c1d-04d6-4af3-bf91-9fb5ba828997.root",
-"/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/5e0ec603-8813-4227-9dc4-95b46e987588.root"
-),
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/2629b39a-a626-4774-be78-e1e6783b755c.root",
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/6c45ebf6-052c-456f-b085-1def7f38830c.root",
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/361/971/00000/71a94f03-6acf-46fb-af77-5e29709199c3.root",
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/22266449-6097-4832-9eef-92c0c5e0f8dc.root",
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/27f02c1d-04d6-4af3-bf91-9fb5ba828997.root",
+                                "/store/data/Run2022F/ScoutingPFMonitor/MINIAOD/PromptReco-v1/000/362/167/00000/5e0ec603-8813-4227-9dc4-95b46e987588.root"
+                            ),
                             secondaryFileNames=cms.untracked.vstring(
                                 "/store/data/Run2022F/ScoutingPFMonitor/RAW/v1/000/361/971/00000/ba851896-96bc-4c21-b45a-dcb8ac57e272.root",
                             "/store/data/Run2022F/ScoutingPFMonitor/RAW/v1/000/362/167/00000/bce2e687-410b-4a10-bbed-60c82d5ddf40.root"),
