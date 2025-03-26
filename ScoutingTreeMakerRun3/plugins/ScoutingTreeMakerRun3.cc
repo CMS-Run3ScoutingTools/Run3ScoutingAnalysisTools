@@ -5,16 +5,9 @@
 //
 /**\class ScoutingTreeMakerRun3 ScoutingTreeMakerRun3.cc Run3ScoutingAnalysisTools/ScoutingTreeMakerRun3/plugins/ScoutingTreeMakerRun3.cc
 
- Description: [one line class summary]
+ Description: Ntuple maker for scouting data set from the RAW/HLTSCOUT data-format
 
- Implementation:
-     [Notes on implementation]
 */
-//
-// Original Author:  David Sperka
-//         Created:  Sat, 11 Feb 2023 14:15:08 GMT
-//
-//
 
 // system include files
 #include <memory>
@@ -60,52 +53,60 @@
 // class declaration
 //
 
-// If the analyzer does not use TFileService, please remove
-// the template argument to the base class so the class inherits
-// from  edm::one::EDAnalyzer<>
-// This will improve performance in multithreaded jobs.
 
 class ScoutingTreeMakerRun3 : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
   explicit ScoutingTreeMakerRun3(const edm::ParameterSet&);
   ~ScoutingTreeMakerRun3() override;
-
+  edm::ConsumesCollector iC = consumesCollector();                                                                                                                                                              
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
   void beginJob() override;
   void analyze(const edm::Event&, const edm::EventSetup&) override;
   void endJob() override;
-    //void beginRun(edm::Run const&, edm::EventSetup const&) override;
-  //void endRun(edm::Run const&, edm::EventSetup const&) override;
-  //void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-  //void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;   
+  edm::ParameterSet parameters;
+
+  // L1 and HLT Trigger
+  triggerExpression::Data triggerCache_;
+  std::vector<triggerExpression::Evaluator*> vtriggerSelector_;
+  std::vector<std::string> vtriggerAlias_;
+  std::vector<std::string> vtriggerSelection_;
+  bool doL1;
 
   const edm::InputTag triggerResultsTag;
-  const edm::EDGetTokenT<edm::TriggerResults>             triggerResultsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingMuon> >      muonsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingElectron> >  electronsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    primaryVerticesToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    verticesToken;
-  const edm::EDGetTokenT<double>                          rhoToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingPhoton> >  photonsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  pfcandsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingPFJet> >  pfjetsToken;
-  const edm::EDGetTokenT<std::vector<Run3ScoutingTrack> >  tracksToken;
-
+  const edm::EDGetTokenT<edm::TriggerResults> triggerResultsToken;
   std::vector<std::string> triggerPathsVector;
   std::map<std::string, int> triggerPathsMap;
 
-  bool doL1;
-  triggerExpression::Data triggerCache_;
 
   edm::InputTag                algInputTag_;
   edm::InputTag                extInputTag_;
   edm::EDGetToken              algToken_;
-  std::unique_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
+  std::shared_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
   std::vector<std::string>     l1Seeds_;
   std::vector<bool>            l1Result_;
 
+  // Objects
+  const edm::EDGetTokenT<std::vector<Run3ScoutingMuon> >      muonsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingElectron> >  electronsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    primaryVerticesToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingVertex> >    verticesToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingPhoton> >    photonsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingParticle> >  pfcandsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingPFJet> >     pfjetsToken;
+  const edm::EDGetTokenT<std::vector<Run3ScoutingTrack> >     tracksToken;
+  const edm::EDGetTokenT<double>                              rhoToken;
+
+  // HLT                                                                                                                                                                                                        
+  TString hltNames[100] = {""};                                                                                                                                                                                 
+  Bool_t hltResult[100] = {false};                                                                                                                                                                              
+  
+  // L1                                                                                                                                                                                                         
+  TString l1Names[100] = {""};                                                                                                                                                                                  
+  Bool_t l1Result[100] = {false};                                                                                                                                                                               
+  Float_t l1Prescale[100] = {0.0};
+  
   TTree* tree;
 
   float trackIso1;
@@ -126,6 +127,8 @@ private:
   float pt2;
   float eta1;
   float eta2;
+  float phi1;
+  float phi2;
 
   float rho;
   int nMuonsID;
@@ -159,31 +162,53 @@ private:
 // constructors and destructor
 //
 ScoutingTreeMakerRun3::ScoutingTreeMakerRun3(const edm::ParameterSet& iConfig):
-    triggerResultsTag        (iConfig.getParameter<edm::InputTag>("triggerresults")),
-    triggerResultsToken      (consumes<edm::TriggerResults>                    (triggerResultsTag)),
-    muonsToken               (consumes<std::vector<Run3ScoutingMuon> >             (iConfig.getParameter<edm::InputTag>("muons"))),
-    electronsToken           (consumes<std::vector<Run3ScoutingElectron> >         (iConfig.getParameter<edm::InputTag>("electrons"))),
-    primaryVerticesToken     (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("primaryVertices"))),
-    verticesToken            (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("displacedVertices"))),
-    rhoToken                 (consumes<double>                                 (iConfig.getParameter<edm::InputTag>("rho"))), 
-    photonsToken             (consumes<std::vector<Run3ScoutingPhoton> >         (iConfig.getParameter<edm::InputTag>("photons"))),
-    pfcandsToken             (consumes<std::vector<Run3ScoutingParticle> >         (iConfig.getParameter<edm::InputTag>("pfcands"))),
-    pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >            (iConfig.getParameter<edm::InputTag>("pfjets"))),
-    tracksToken              (consumes<std::vector<Run3ScoutingTrack> >            (iConfig.getParameter<edm::InputTag>("tracks"))),
-    doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false)
+  triggerCache_(triggerExpression::Data(iConfig.getParameterSet("triggerConfiguration"), consumesCollector())),
+  vtriggerAlias_(iConfig.getParameter<vector<string>>("triggerAlias")),
+  vtriggerSelection_(iConfig.getParameter<vector<string>>("triggerSelection")),
+  doL1                     (iConfig.existsAs<bool>("doL1")               ?    iConfig.getParameter<bool>  ("doL1")            : false),
+  //#triggerResultsTag        (iConfig.getParameter<edm::InputTag>("hltResults")),
+  //triggerResultsToken      (consumes<edm::TriggerResults>                    (triggerResultsTag)),
+  l1GtUtils_(nullptr),
+  muonsToken               (consumes<std::vector<Run3ScoutingMuon> >             (iConfig.getParameter<edm::InputTag>("muons"))),
+  electronsToken           (consumes<std::vector<Run3ScoutingElectron> >         (iConfig.getParameter<edm::InputTag>("electrons"))),
+  primaryVerticesToken     (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("primaryVertices"))),
+  verticesToken            (consumes<std::vector<Run3ScoutingVertex> >           (iConfig.getParameter<edm::InputTag>("displacedVertices"))),
+  photonsToken             (consumes<std::vector<Run3ScoutingPhoton> >         (iConfig.getParameter<edm::InputTag>("photons"))),
+  pfcandsToken             (consumes<std::vector<Run3ScoutingParticle> >         (iConfig.getParameter<edm::InputTag>("pfcands"))),
+  pfjetsToken              (consumes<std::vector<Run3ScoutingPFJet> >            (iConfig.getParameter<edm::InputTag>("pfjets"))),
+  tracksToken              (consumes<std::vector<Run3ScoutingTrack> >            (iConfig.getParameter<edm::InputTag>("tracks"))),
+  rhoToken                 (consumes<double>                                 (iConfig.getParameter<edm::InputTag>("rho"))) 
 {
-    usesResource("TFileService");
-    if (doL1) {
-        algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
-        extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
-        algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
-        l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-        l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
-    }
-    else {
-        l1Seeds_ = std::vector<std::string>();
-        l1GtUtils_ = 0;
-    }
+  usesResource("TFileService");
+
+   parameters = iConfig;
+
+   vtriggerSelector_.reserve(vtriggerSelection_.size());
+   for (auto const& vt:vtriggerSelection_) vtriggerSelector_.push_back(triggerExpression::parse(vt));
+   for (unsigned int i = 0; i < l1Seeds_.size(); i++){
+     const auto& l1seed(l1Seeds_.at(i));
+     l1Names[i] = TString(l1seed);
+   }
+
+   algToken_ = consumes<BXVector<GlobalAlgBlk>>(iConfig.getParameter<edm::InputTag>("AlgInputTag"));
+   l1GtUtils_ = std::make_shared<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), l1t::UseEventSetupIn::RunAndEvent);
+   l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
+   for (unsigned int i = 0; i < l1Seeds_.size(); i++){
+     const auto& l1seed(l1Seeds_.at(i));
+     l1Names[i] = TString(l1seed);
+   }
+
+   /*if (doL1) {
+    algInputTag_ = iConfig.getParameter<edm::InputTag>("AlgInputTag");
+    extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
+    algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
+    l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
+    l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
+  }
+  else {
+    l1Seeds_ = std::vector<std::string>();
+    l1GtUtils_ = 0;
+    }*/
 }
 
 ScoutingTreeMakerRun3::~ScoutingTreeMakerRun3() {
@@ -206,9 +231,51 @@ void ScoutingTreeMakerRun3::analyze(const edm::Event& iEvent, const edm::EventSe
   Handle<vector<Run3ScoutingMuon> > muonsH;
   iEvent.getByToken(muonsToken, muonsH);
 
-  if (muonsH->size()<2) return;
+  // -> HLT
+  bool passHLT = false;
+  if (triggerCache_.setEvent(iEvent, iSetup)){
+    auto trigAlias=vtriggerAlias_.cbegin();
+    for (unsigned int i = 0; i < vtriggerSelector_.size(); i++){
+      auto& vts(vtriggerSelector_.at(i));
+      bool result = false;
+      if (vts){
+	if (triggerCache_.configurationUpdated()) vts->init(triggerCache_);
+	result = (*vts)(triggerCache_);
+      }
+      hltResult[i] = result;
+      if (result)
+	passHLT = true;
+      trigAlias++;
+    }
+  }
+  
+  if (!passHLT){
+    //std::cout << "------------------- Evaluating HLT: not passed!" << std::endl;
+    return;
+  }
 
-  int nMuons=0;
+  // -> L1 seeds
+  bool passL1 = false;
+  l1GtUtils_->retrieveL1(iEvent, iSetup, algToken_);
+  for (unsigned int i = 0; i < l1Seeds_.size(); i++){
+    const auto& l1seed(l1Seeds_.at(i));
+    bool l1htbit = 0;
+    double prescale = -1;
+    l1GtUtils_->getFinalDecisionByName(l1seed, l1htbit);
+    l1GtUtils_->getPrescaleByName(l1seed, prescale);
+    l1Result[i] = l1htbit;
+    l1Prescale[i] = prescale;
+    if (l1htbit)
+      passL1 = true;
+    //std::cout << l1seed << " " << l1htbit << " " << prescale << std::endl;
+  }
+  
+  if (!passL1)
+    return;
+    
+  if (muonsH->size()<2)
+    return;
+
   nMuonsID=0;
   vector<int> idx;
 
@@ -260,8 +327,8 @@ void ScoutingTreeMakerRun3::analyze(const edm::Event& iEvent, const edm::EventSe
 
       eta1=muonsH->at(idx[0]).eta();
       eta2=muonsH->at(idx[1]).eta();      
-      float phi1=muonsH->at(idx[0]).phi();
-      float phi2=muonsH->at(idx[1]).phi();
+      phi1=muonsH->at(idx[0]).phi();
+      phi2=muonsH->at(idx[1]).phi();
       
       TLorentzVector mu1;
       mu1.SetPtEtaPhiM(pt1,eta1,phi1,0.105658);
@@ -363,47 +430,60 @@ void ScoutingTreeMakerRun3::analyze(const edm::Event& iEvent, const edm::EventSe
 
 // ------------ method called once each job just before starting event loop  ------------
 void ScoutingTreeMakerRun3::beginJob() {
-    edm::Service<TFileService> fs;
-    tree = fs->make<TTree>("tree"      , "tree");
-    //tree->Branch("muonID1"             , &muonID1                     , "muonID1/B" );
-    //tree->Branch("muonID2"             , &muonID2                     , "muonID2/B" );
-
-    tree->Branch("trackIso1", &trackIso1, "trackIso1/F");
-    tree->Branch("trackIso2", &trackIso2, "trackIso2/F");
-    tree->Branch("nValidPixelHits1", &nValidPixelHits1, "nValidPixelHits1/I");
-    tree->Branch("nValidPixelHits2", &nValidPixelHits2, "nValidPixelHits2/I");
-    tree->Branch("nTrackerLayersWithMeasurement1", &nTrackerLayersWithMeasurement1, "nTrackerLayersWithMeasurement1/I");
-    tree->Branch("nTrackerLayersWithMeasurement2", &nTrackerLayersWithMeasurement2, "nTrackerLayersWithMeasurement2/I");
-    tree->Branch("trk_chi21", &trk_chi21, "trk_chi21/F");
-    tree->Branch("trk_chi22", &trk_chi22, "trk_chi22/F");
-
-    tree->Branch("mass"                , &mass                        , "mass/F"    );
-    tree->Branch("pt"                  , &pt                          , "pt/F"      );
-    tree->Branch("dr"                  , &dr                          , "dr/F"      );
-    tree->Branch("pt1"                 , &pt1                         , "pt1/F"     );
-    tree->Branch("pt2"                 , &pt2                         , "pt2/F"     );
-    tree->Branch("eta1"                , &eta1                        , "eta1/F"    );
-    tree->Branch("eta2"                , &eta2                        , "eta2/F"    );
-    tree->Branch("rho"                 , &rho                         , "rho/F"     );
-
-    tree->Branch("vtxMatch"            , &vtxMatch                    , "vtxMatch/B");
-    tree->Branch("vtxChi2"             , &vtxChi2                     , "vtxChi2/F" );
-    tree->Branch("vtxNdof"             , &vtxNdof                     , "vtxNdof/I" );
-    tree->Branch("Lxy"                 , &Lxy                         , "Lxy/F"     );
-    tree->Branch("LxyErr"              , &LxyErr                      , "LxyErr/F"  );
-    tree->Branch("LxySig"              , &LxySig                      , "LxySig/F"  );
-
-    tree->Branch("vtxXError"           , &vtxXError                   , "vtxXError/F");
-    tree->Branch("vtxYError"           , &vtxYError                   , "vtxYError/F");
-    tree->Branch("vtxZError"           , &vtxZError                   , "vtxZError/F");
-
-    tree->Branch("l1Result", "std::vector<bool>"             ,&l1Result_, 32000, 0  );
+  std::cout << "Begin Job" << std::endl;
+  edm::Service<TFileService> fs;
+  tree = fs->make<TTree>("tree"      , "tree");
+  
+  for (unsigned int iHLT=0; iHLT<vtriggerAlias_.size(); ++iHLT) {
+    std::cout << hltNames[iHLT] << std::endl;
+    tree->Branch(TString(vtriggerAlias_[iHLT]), &hltResult[iHLT]);
+  }
+  
+  for (unsigned int iL1=0; iL1<l1Seeds_.size(); ++iL1) {
+    tree->Branch(TString(l1Names[iL1]), &l1Result[iL1]);
+    std::cout << l1Names[iL1] << std::endl;
+  }
+  
+   
+  tree->Branch("trackIso1", &trackIso1, "trackIso1/F");
+  tree->Branch("trackIso2", &trackIso2, "trackIso2/F");
+  tree->Branch("nValidPixelHits1", &nValidPixelHits1, "nValidPixelHits1/I");
+  tree->Branch("nValidPixelHits2", &nValidPixelHits2, "nValidPixelHits2/I");
+  tree->Branch("nTrackerLayersWithMeasurement1", &nTrackerLayersWithMeasurement1, "nTrackerLayersWithMeasurement1/I");
+  tree->Branch("nTrackerLayersWithMeasurement2", &nTrackerLayersWithMeasurement2, "nTrackerLayersWithMeasurement2/I");
+  tree->Branch("trk_chi21", &trk_chi21, "trk_chi21/F");
+  tree->Branch("trk_chi22", &trk_chi22, "trk_chi22/F");
+  
+  tree->Branch("mass"                , &mass                        , "mass/F"    );
+  tree->Branch("pt"                  , &pt                          , "pt/F"      );
+  tree->Branch("dr"                  , &dr                          , "dr/F"      );
+  tree->Branch("pt1"                 , &pt1                         , "pt1/F"     );
+  tree->Branch("pt2"                 , &pt2                         , "pt2/F"     );
+  tree->Branch("eta1"                , &eta1                        , "eta1/F"    );
+  tree->Branch("eta2"                , &eta2                        , "eta2/F"    );
+  tree->Branch("phi1"                , &phi1                        , "phi1/F"    );
+  tree->Branch("phi2"                , &phi2                        , "phi2/F"    );
+  tree->Branch("rho"                 , &rho                         , "rho/F"     );
+  
+  tree->Branch("vtxMatch"            , &vtxMatch                    , "vtxMatch/B");
+  tree->Branch("vtxChi2"             , &vtxChi2                     , "vtxChi2/F" );
+  tree->Branch("vtxNdof"             , &vtxNdof                     , "vtxNdof/I" );
+  tree->Branch("Lxy"                 , &Lxy                         , "Lxy/F"     );
+  tree->Branch("LxyErr"              , &LxyErr                      , "LxyErr/F"  );
+  tree->Branch("LxySig"              , &LxySig                      , "LxySig/F"  );
+  
+  tree->Branch("vtxXError"           , &vtxXError                   , "vtxXError/F");
+  tree->Branch("vtxYError"           , &vtxYError                   , "vtxYError/F");
+  tree->Branch("vtxZError"           , &vtxZError                   , "vtxZError/F");
+  
+  tree->Branch("l1Result", "std::vector<bool>"             ,&l1Result_, 32000, 0  );
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void ScoutingTreeMakerRun3::endJob() {
   // please remove this method if not needed
 }
+
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void ScoutingTreeMakerRun3::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

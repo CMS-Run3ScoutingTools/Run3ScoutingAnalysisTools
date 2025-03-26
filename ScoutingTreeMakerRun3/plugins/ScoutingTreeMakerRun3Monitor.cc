@@ -126,6 +126,8 @@ private:
   //Defining scouting variables: muons
   int   nOfflineMuons;
   float pt1_scout, pt2_scout;
+  float eta1_scout, eta2_scout;
+  float phi1_scout, phi2_scout;
   float mass_scout;
   float ptmm_scout;
   float drmm_scout;
@@ -505,6 +507,10 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   TLorentzVector mu2_scout;
   pt1_scout=muonsH->at(idx1_scout).pt();
   pt2_scout=muonsH->at(idx2_scout).pt();
+  eta1_scout=muonsH->at(idx1_scout).eta();
+  eta2_scout=muonsH->at(idx2_scout).eta();
+  phi1_scout=muonsH->at(idx1_scout).phi();
+  phi2_scout=muonsH->at(idx2_scout).phi();
   mu1_scout.SetPtEtaPhiM(pt1_scout,muonsH->at(idx1_scout).eta(),muonsH->at(idx1_scout).phi(),0.105658);
   mu2_scout.SetPtEtaPhiM(pt2_scout,muonsH->at(idx2_scout).eta(),muonsH->at(idx2_scout).phi(),0.105658);
 
@@ -533,6 +539,8 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("pt2"                 , &pt2                          , "pt2/F");
     tree->Branch("eta1"                , &eta1                         , "eta1/F");
     tree->Branch("eta2"                , &eta2                         , "eta2/F");
+    tree->Branch("phi1"                , &phi1                         , "phi1/F");
+    tree->Branch("phi2"                , &phi2                         , "phi2/F");
     tree->Branch("id1"                 , &id1                          , "id1/I");
     tree->Branch("id2"                 , &id2                          , "id2/I");
     tree->Branch("rho"                 , &rho                          , "rho/F");
@@ -545,9 +553,13 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("nOfflineMuons"       , &nOfflineMuons                , "nOfflineMuons/I");
     tree->Branch("nScoutingMuons"      , &nScoutingMuons               , "nScoutingMuons/I");
     tree->Branch("nvtx"                , &nvtx                         , "nvtx/I");
-    tree->Branch("ndvtx"                , &ndvtx                         , "ndvtx/I");
+    tree->Branch("ndvtx"               , &ndvtx                        , "ndvtx/I");
     tree->Branch("pt1_scout"           , &pt1_scout                    , "pt1_scout/F");                                    
     tree->Branch("pt2_scout"           , &pt2_scout                    , "pt2_scout/F");                                      
+    tree->Branch("eta1_scout"          , &eta1_scout                   , "eta1_scout/F");                                    
+    tree->Branch("eta2_scout"          , &eta2_scout                   , "eta2_scout/F");                                      
+    tree->Branch("phi1_scout"          , &phi1_scout                   , "phi1_scout/F");                                    
+    tree->Branch("phi2_scout"          , &phi2_scout                   , "phi2_scout/F");                                      
     tree->Branch("mass_scout"          , &mass_scout                   , "mass_scout/F");                                          
     tree->Branch("ptmm_scout"          , &ptmm_scout                   , "ptmm_scout/F");                           
     tree->Branch("drmm_scout"          , &drmm_scout                   , "drmm_scout/F");
