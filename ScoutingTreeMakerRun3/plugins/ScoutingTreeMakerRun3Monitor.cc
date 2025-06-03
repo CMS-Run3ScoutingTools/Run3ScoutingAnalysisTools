@@ -126,6 +126,8 @@ private:
   //Defining scouting variables: muons
   int   nOfflineMuons;
   float pt1_scout, pt2_scout;
+  float eta1_scout, eta2_scout;
+  float phi1_scout, phi2_scout;
   float mass_scout;
   float ptmm_scout;
   float drmm_scout;
@@ -219,7 +221,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   // Minimal selection on the offline muons
   // --------------------------------------
   for (auto muons_iter = offlineMuonsH->begin(); muons_iter != offlineMuonsH->end(); ++muons_iter) {
-    if (muons_iter->pt()>3 &&  abs(muons_iter->eta())<1.9) { //removing the MediumMuon ID requirement, saved later
+    if (muons_iter->pt()>3 &&  abs(muons_iter->eta())<2.4) { //removing the MediumMuon ID requirement, saved later
       nOfflineMuons+=1;
       idx.push_back(j);
     }
@@ -298,7 +300,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   // ---------------------------------------
   for (auto muons_scout_iter = muonsH->begin(); muons_scout_iter != muonsH->end(); ++muons_scout_iter) {
     //cout<<"scouting muon pt: "<<muons_scout_iter->pt()<<" eta: "<<muons_scout_iter->eta()<<endl;                                 
-    if (muons_scout_iter->pt()>3 and abs(muons_scout_iter->eta())<1.9) {
+    if (muons_scout_iter->pt()>3 and abs(muons_scout_iter->eta())<2.4) {
       nScoutingMuons+=1;
       idx_scout.push_back(s);
     }
@@ -505,6 +507,10 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
   TLorentzVector mu2_scout;
   pt1_scout=muonsH->at(idx1_scout).pt();
   pt2_scout=muonsH->at(idx2_scout).pt();
+  eta1_scout=muonsH->at(idx1_scout).eta();
+  eta2_scout=muonsH->at(idx2_scout).eta();
+  phi1_scout=muonsH->at(idx1_scout).phi();
+  phi2_scout=muonsH->at(idx2_scout).phi();
   mu1_scout.SetPtEtaPhiM(pt1_scout,muonsH->at(idx1_scout).eta(),muonsH->at(idx1_scout).phi(),0.105658);
   mu2_scout.SetPtEtaPhiM(pt2_scout,muonsH->at(idx2_scout).eta(),muonsH->at(idx2_scout).phi(),0.105658);
 
@@ -550,6 +556,10 @@ void ScoutingTreeMakerRun3Monitor::beginJob() {
     tree->Branch("ndvtx"                , &ndvtx                         , "ndvtx/I");
     tree->Branch("pt1_scout"           , &pt1_scout                    , "pt1_scout/F");                                    
     tree->Branch("pt2_scout"           , &pt2_scout                    , "pt2_scout/F");                                      
+    tree->Branch("eta1_scout"           , &eta1_scout                    , "eta1_scout/F");                                    
+    tree->Branch("eta2_scout"           , &eta2_scout                    , "eta2_scout/F");                                      
+    tree->Branch("phi1_scout"           , &phi1_scout                    , "phi1_scout/F");                                    
+    tree->Branch("phi2_scout"           , &phi2_scout                    , "phi2_scout/F");                                      
     tree->Branch("mass_scout"          , &mass_scout                   , "mass_scout/F");                                          
     tree->Branch("ptmm_scout"          , &ptmm_scout                   , "ptmm_scout/F");                           
     tree->Branch("drmm_scout"          , &drmm_scout                   , "drmm_scout/F");

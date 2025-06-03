@@ -14,8 +14,8 @@ import sys
 import warnings
 warnings.filterwarnings("ignore", message="The value of the smallest subnormal for <class 'numpy.float64'> type is zero.")
 
-
 # Set the style to CMS
+# --------------------
 hep.style.use('CMS')
 
 def read_data(filename, column_index):
@@ -51,6 +51,8 @@ def main():
     total_size_bytes = sum(sizes)
     percentages = [(size / total_size_bytes) * 100 for size in sizes]
 
+    # NOTE: define threshold below which everything gets clubbed to others
+    # --------------------------------------------------------------------
     threshold_percentage = 3
     new_branches = []
     new_sizes = []
@@ -86,16 +88,19 @@ def main():
     centre_circle = plt.Circle((0, 0), 0.50, fc='white')
     fig.gca().add_artist(centre_circle)
 
+    # Unit conversion: convention that 1 kB = 1024 bytes
+    # --------------------------------------------------
     total_size_kB = total_size_bytes / 1024
+
     plt.text(0, 0, 'Total Size:\n{:.1f} kB'.format(total_size_kB), ha='center', va='center', fontsize=12)
 
     hep.cms.label(ax=ax, data=True, loc=0, fontsize=10 ,com =13.6)
     #plt.title(args.filename.split('.')[0])
 
-    #plt.show()
-
     # Save the figure as specified by the output argument
+    # ---------------------------------------------------
     fig.savefig(args.output, format=args.output.split('.')[-1], dpi=650)
+    #plt.show()
 
 if __name__ == '__main__':
     main()
