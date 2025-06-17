@@ -27,21 +27,26 @@ ROOT.gROOT.SetBatch()
 ROOT.gStyle.SetOptStat(0)
 ROOT.gStyle.SetOptTitle(0)
 argparser = argparse.ArgumentParser(description='Parser used for non default arguments', formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=True)
-argparser.add_argument('--outdir', dest='outdir', default='/eos/user/e/elfontan/www/CMS_SCOUTING/2024/', help='Output directory')                       
+argparser.add_argument('--outdir', dest='outdir', default='/eos/user/e/elfontan/www/CMS_SCOUTING/2024/DIMUON/DP_NOTE/', help='Output directory')                       
 args = argparser.parse_args()                                                                                                                              
 outputdir = args.outdir                                                                                                                       
 ROOT.gROOT.SetBatch()                                                                                                                  
 ROOT.gStyle.SetOptStat(0)                                                                                                               
 ROOT.gStyle.SetOptTitle(0)
 
+vtx = False
+novtx = True
+
 ######################################
 # List of files and output directory #
 ######################################
 def list_full_paths(directory):
     return [os.path.join(directory, file) for file in os.listdir(directory)]
-files = list_full_paths("/eos/user/e/elfontan/2024_SCOUTING/ScoutingPFMonitor/") 
-files = files[:-1] 
-
+if (novtx):
+    files = list_full_paths("/eos/user/e/elfontan/2024_SCOUTING/noVtxMu_ScoutingPFMonitor/")
+elif (vtx):
+    files = list_full_paths("/eos/user/e/elfontan/2024_SCOUTING/vtxMu_ScoutingPFMonitor/")
+#files = files[0:-7] 
 
 ########################
 # Variables and histos #
@@ -62,7 +67,7 @@ h_higherPt_list_E = []
 f_higherPt_list_B = []
 f_higherPt_list_E = []
 
-for v in range(0,60):
+for v in range(0,50):
     minval = str(v)
     maxval = str(v+1)
     min_list.append(v)
@@ -84,19 +89,23 @@ for v in range(0,60):
     f_list_E.append(f_res_pt_E)
     f_name_list_E.append(f_name_E)
 
+h_res_pt_50_60_B =  TH1F("h_res_pt_50_60_B", "h_res_pt_50_60_B", 400, -0.05, 0.05)
 h_res_pt_60_70_B =  TH1F("h_res_pt_60_70_B", "h_res_pt_60_70_B", 400, -0.05, 0.05)
 h_res_pt_70_80_B =  TH1F("h_res_pt_70_80_B", "h_res_pt_70_80_B", 400, -0.05, 0.05)
 h_res_pt_80_90_B =  TH1F("h_res_pt_80_90_B", "h_res_pt_80_90_B", 400, -0.05, 0.05)
 h_res_pt_90_100_B =  TH1F("h_res_pt_90_100_B", "h_res_pt_90_100_B", 400, -0.05, 0.05)
+f_res_pt_50_60_B = ROOT.TF1("f_res_pt_50_60_B", "gaus")
 f_res_pt_60_70_B = ROOT.TF1("f_res_pt_60_70_B", "gaus")
 f_res_pt_70_80_B = ROOT.TF1("f_res_pt_70_80_B", "gaus")
 f_res_pt_80_90_B = ROOT.TF1("f_res_pt_80_90_B", "gaus")
 f_res_pt_90_100_B = ROOT.TF1("f_res_pt_90_100_B", "gaus")
 
+h_res_pt_50_60_E =  TH1F("h_res_pt_50_60_E", "h_res_pt_50_60_E", 400, -0.05, 0.05)
 h_res_pt_60_70_E =  TH1F("h_res_pt_60_70_E", "h_res_pt_60_70_E", 400, -0.05, 0.05)
 h_res_pt_70_80_E =  TH1F("h_res_pt_70_80_E", "h_res_pt_70_80_E", 400, -0.05, 0.05)
 h_res_pt_80_90_E =  TH1F("h_res_pt_80_90_E", "h_res_pt_80_90_E", 400, -0.05, 0.05)
 h_res_pt_90_100_E =  TH1F("h_res_pt_90_100_E", "h_res_pt_90_100_E", 400, -0.05, 0.05)
+f_res_pt_50_60_E = ROOT.TF1("f_res_pt_50_60_E", "gaus")
 f_res_pt_60_70_E = ROOT.TF1("f_res_pt_60_70_E", "gaus")
 f_res_pt_70_80_E = ROOT.TF1("f_res_pt_70_80_E", "gaus")
 f_res_pt_80_90_E = ROOT.TF1("f_res_pt_80_90_E", "gaus")
@@ -144,69 +153,82 @@ for filename in files:
     for ev in t_scoutMuon:
       #print("nScoutingMuons = ", ev.nScoutingMuons )
       if (not(ev.nScoutingMuons == 2)): continue
+      if (not(ev.pt1_scout >= 3 and ev.pt2_scout >= 3)): continue
       if (ev.drmm < 0.2 or ev.drmm_scout < 0.2): continue                                                                                                            
       if (ev.dr_matching_1 > 0.1 or ev.dr_matching_2 > 0.1): continue
 
-      if ((ev.l1Result[0]==1 or ev.l1Result[1]==1 or ev.l1Result[2]==1 or ev.l1Result[3]==1 or ev.l1Result[4]==1 or ev.l1Result[5]==1 or ev.l1Result[6]==1 or ev.l1Result[7]==1 or ev.l1Result[8]==1 or ev.l1Result[9]==1 or ev.l1Result[10]==1 or ev.l1Result[11]==1 or ev.l1Result[12]==1 or ev.l1Result[13]==1 or ev.l1Result[14]==1 or ev.l1Result[15]==1 or ev.l1Result[16]==1 or ev.l1Result[17]==1 or ev.l1Result[18]==1 or ev.l1Result[19]==1 or ev.l1Result[20]==1 or ev.l1Result[21]==1 or ev.l1Result[22]==1 or ev.l1Result[23]==1) and ev.ndvtx > 0 ):
-        if (abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9 and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+      if (ev.ndvtx > 0):
+      #if ((ev.l1Result[0]==1 or ev.l1Result[1]==1 or ev.l1Result[2]==1 or ev.l1Result[3]==1 or ev.l1Result[4]==1 or ev.l1Result[5]==1 or ev.l1Result[6]==1 or ev.l1Result[7]==1 or ev.l1Result[8]==1 or ev.l1Result[9]==1 or ev.l1Result[10]==1 or ev.l1Result[11]==1 or ev.l1Result[12]==1 or ev.l1Result[13]==1 or ev.l1Result[14]==1 or ev.l1Result[15]==1 or ev.l1Result[16]==1 or ev.l1Result[17]==1 or ev.l1Result[18]==1 or ev.l1Result[19]==1 or ev.l1Result[20]==1 or ev.l1Result[21]==1 or ev.l1Result[22]==1 or ev.l1Result[23]==1) and ev.ndvtx > 0 ):
+        if (abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
             h_mass_res_zoom_E.Fill((ev.mass_scout - ev.mass)/ev.mass)
-        elif(abs(ev.eta1) < 0.9 and abs(ev.eta2) < 0.9):
+        elif(abs(ev.eta1_scout) < 0.9 and abs(ev.eta2_scout) < 0.9):
             h_mass_res_zoom_B.Fill((ev.mass_scout - ev.mass)/ev.mass)
 
         for h in range(len(h_list_B)):
             #print(h)
-            if (ev.pt1_scout > min_list[h] and ev.pt1_scout <= max_list[h] and abs(ev.eta1) < 0.9):
+            if (ev.pt1_scout > min_list[h] and ev.pt1_scout <= max_list[h] and abs(ev.eta1_scout) < 0.9):
                 #print("min = ", min_list[h])
                 #print("max = ", max_list[h])
                 h_list_B[h].Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-            if (ev.pt2_scout > min_list[h] and ev.pt2_scout <= max_list[h] and abs(ev.eta2) < 0.9):
+            if (ev.pt2_scout > min_list[h] and ev.pt2_scout <= max_list[h] and abs(ev.eta2_scout) < 0.9):
                 h_list_B[h].Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
                     
-            if (ev.pt1_scout > min_list[h] and ev.pt1_scout <= max_list[h] and abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9):
+            if (ev.pt1_scout > min_list[h] and ev.pt1_scout <= max_list[h] and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
                 h_list_E[h].Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-            if (ev.pt2_scout > min_list[h] and ev.pt2_scout <= max_list[h] and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+            if (ev.pt2_scout > min_list[h] and ev.pt2_scout <= max_list[h] and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
                 h_list_E[h].Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
 
-        if (ev.pt1_scout > 60 and ev.pt1_scout <= 70 and abs(ev.eta1) < 0.9):
+        if (ev.pt1_scout > 50 and ev.pt1_scout <= 60 and abs(ev.eta1_scout) < 0.9):
+            h_res_pt_50_60_B.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
+        if (ev.pt2_scout > 50 and ev.pt2_scout <= 60 and abs(ev.eta2_scout) < 0.9):
+            h_res_pt_50_60_B.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
+        if (ev.pt1_scout > 50 and ev.pt1_scout <= 60 and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
+            h_res_pt_50_60_E.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
+        if (ev.pt2_scout > 50 and ev.pt2_scout <= 60 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
+            h_res_pt_50_60_E.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
+
+        if (ev.pt1_scout > 60 and ev.pt1_scout <= 70 and abs(ev.eta1_scout) < 0.9):
             h_res_pt_60_70_B.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 60 and ev.pt2_scout <= 70 and abs(ev.eta2) < 0.9):
+        if (ev.pt2_scout > 60 and ev.pt2_scout <= 70 and abs(ev.eta2_scout) < 0.9):
             h_res_pt_60_70_B.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
-        if (ev.pt1_scout > 60 and ev.pt1_scout <= 70 and abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9):
+        if (ev.pt1_scout > 60 and ev.pt1_scout <= 70 and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
             h_res_pt_60_70_E.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 60 and ev.pt2_scout <= 70 and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+        if (ev.pt2_scout > 60 and ev.pt2_scout <= 70 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
             h_res_pt_60_70_E.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
 
-        if (ev.pt1_scout > 70 and ev.pt1_scout <= 80 and abs(ev.eta1) < 0.9):
+        if (ev.pt1_scout > 70 and ev.pt1_scout <= 80 and abs(ev.eta1_scout) < 0.9):
             h_res_pt_70_80_B.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 70 and ev.pt2_scout <= 80 and abs(ev.eta2) < 0.9):
+        if (ev.pt2_scout > 70 and ev.pt2_scout <= 80 and abs(ev.eta2_scout) < 0.9):
             h_res_pt_70_80_B.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
-        if (ev.pt1_scout > 70 and ev.pt1_scout <= 80 and abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9):
+        if (ev.pt1_scout > 70 and ev.pt1_scout <= 80 and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
             h_res_pt_70_80_E.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 70 and ev.pt2_scout <= 80 and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+        if (ev.pt2_scout > 70 and ev.pt2_scout <= 80 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
             h_res_pt_70_80_E.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
 
-        if (ev.pt1_scout > 80 and ev.pt1_scout <= 90 and abs(ev.eta1) < 0.9):
+        if (ev.pt1_scout > 80 and ev.pt1_scout <= 90 and abs(ev.eta1_scout) < 0.9):
             h_res_pt_80_90_B.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 80 and ev.pt2_scout <= 90 and abs(ev.eta2) < 0.9):
+        if (ev.pt2_scout > 80 and ev.pt2_scout <= 90 and abs(ev.eta2_scout) < 0.9):
             h_res_pt_80_90_B.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
-        if (ev.pt1_scout > 80 and ev.pt1_scout <= 90 and abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9):
+        if (ev.pt1_scout > 80 and ev.pt1_scout <= 90 and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
             h_res_pt_80_90_E.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 80 and ev.pt2_scout <= 90 and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+        if (ev.pt2_scout > 80 and ev.pt2_scout <= 90 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
             h_res_pt_80_90_E.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
 
-        if (ev.pt1_scout > 90 and ev.pt1_scout <= 100 and abs(ev.eta1) < 0.9):
+        if (ev.pt1_scout > 90 and ev.pt1_scout <= 100 and abs(ev.eta1_scout) < 0.9):
             h_res_pt_90_100_B.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 90 and ev.pt2_scout <= 100 and abs(ev.eta2) < 0.9):
+        if (ev.pt2_scout > 90 and ev.pt2_scout <= 100 and abs(ev.eta2_scout) < 0.9):
             h_res_pt_90_100_B.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
-        if (ev.pt1_scout > 90 and ev.pt1_scout <= 100 and abs(ev.eta1) > 0.9 and abs(ev.eta1) < 1.9):
+        if (ev.pt1_scout > 90 and ev.pt1_scout <= 100 and abs(ev.eta1_scout) > 0.9 and abs(ev.eta1_scout) < 2.4):
             h_res_pt_90_100_E.Fill((ev.pt1_scout - ev.pt1)/ev.pt1)
-        if (ev.pt2_scout > 90 and ev.pt2_scout <= 100 and abs(ev.eta2) > 0.9 and abs(ev.eta2) < 1.9):
+        if (ev.pt2_scout > 90 and ev.pt2_scout <= 100 and abs(ev.eta2_scout) > 0.9 and abs(ev.eta2_scout) < 2.4):
             h_res_pt_90_100_E.Fill((ev.pt2_scout - ev.pt2)/ev.pt2)
 
+    h_higherPt_list_B.append(h_res_pt_50_60_B)
     h_higherPt_list_B.append(h_res_pt_60_70_B)
     h_higherPt_list_B.append(h_res_pt_70_80_B)
     h_higherPt_list_B.append(h_res_pt_80_90_B)
     h_higherPt_list_B.append(h_res_pt_90_100_B)
+    h_higherPt_list_E.append(h_res_pt_50_60_E)
     h_higherPt_list_E.append(h_res_pt_60_70_E)
     h_higherPt_list_E.append(h_res_pt_70_80_E)
     h_higherPt_list_E.append(h_res_pt_80_90_E)
@@ -233,7 +255,8 @@ legend_E.SetLineWidth (0)
 
 CMS_lumi.writeExtraText = True                                                                                          
 CMS_lumi.extraText      = "Preliminary"                                                                                               
-CMS_lumi.lumi_sqrtS      = "3.1 fb^{-1} (13.6 TeV, 2024)"
+CMS_lumi.lumi_sqrtS      = "2024 (13.6 TeV)"
+#CMS_lumi.lumi_sqrtS      = "14.3 fb^{-1} (13.6 TeV, 2024)"
 CMS_lumi.cmsTextSize    = 0.6
 CMS_lumi.lumiTextSize   = 0.46
 CMS_lumi.extraOverCmsTextSize = 0.75
@@ -304,8 +327,8 @@ for h in range(len(h_list_B)):
     text_box_B.Draw("same")
     CMS_lumi.CMS_lumi(c_res_pt_B, 0, 0)
     c_res_pt_B.Update()
-    c_res_pt_B.SaveAs(outputdir + "/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_B.png")
-    c_res_pt_B.SaveAs(outputdir + "/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_B.pdf")
+    #c_res_pt_B.SaveAs(outputdir + "/ptbins/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_B.png")
+    #c_res_pt_B.SaveAs(outputdir + "/ptbins/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_B.pdf")
     
 # PT resolution for 1 GeV bins in the endcap region
 # -------------------------------------------------
@@ -364,14 +387,14 @@ for h in range(len(h_list_E)):
     text_box_E.Draw("same")
     CMS_lumi.CMS_lumi(c_res_pt_E, 0, 0)
     c_res_pt_E.Update()
-    c_res_pt_E.SaveAs(outputdir + "/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_E.png")
-    c_res_pt_E.SaveAs(outputdir + "/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_E.pdf")
+    #c_res_pt_E.SaveAs(outputdir + "/ptbins/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_E.png")
+    #c_res_pt_E.SaveAs(outputdir + "/ptbins/pt"+str(min_list[h])+"_"+str(max_list[h])+"_res_zoom_fit_E.pdf")
 
 
 # Higher Pt: Barrel and endcap histos
 # -----------------------------------
-higherPt_min_list = [60, 70, 80, 90]
-higherPt_max_list = [70, 80, 90, 100]
+higherPt_min_list = [50, 60, 70, 80, 90]
+higherPt_max_list = [60, 70, 80, 90, 100]
 rms_higherPt_list_B = []
 rms_higherPt_list_E = []
 rmserr_higherPt_list_B = []
@@ -421,8 +444,8 @@ for h in range(len(higherPt_min_list)):
     text_box_B.Draw("same")
     CMS_lumi.CMS_lumi(c_res_pt_B, 0, 0)
     c_res_pt_B.Update()
-    c_res_pt_B.SaveAs(outputdir + "/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_B.png")
-    c_res_pt_B.SaveAs(outputdir + "/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_B.pdf")
+    #c_res_pt_B.SaveAs(outputdir + "/ptbins/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_B.png")
+    #c_res_pt_B.SaveAs(outputdir + "/ptbins/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_B.pdf")
 
 
     c_name_E = "c_res_pt_E_"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])
@@ -461,8 +484,8 @@ for h in range(len(higherPt_min_list)):
     text_box_E.Draw("same")
     CMS_lumi.CMS_lumi(c_res_pt_E, 0, 0)
     c_res_pt_E.Update()
-    c_res_pt_E.SaveAs(outputdir + "/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_E.png")
-    c_res_pt_E.SaveAs(outputdir + "/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_E.pdf")
+    #c_res_pt_E.SaveAs(outputdir + "/ptbins/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_E.png")
+    #c_res_pt_E.SaveAs(outputdir + "/ptbins/pt"+str(higherPt_min_list[h])+"_"+str(higherPt_max_list[h])+"_res_zoom_fit_E.pdf")
     
 
 # Create a TGraphError for resolution
@@ -473,11 +496,13 @@ for i in range(0,100):
 
 h_ptres_profile_B = ROOT.TGraphErrors(len(x_values))
 h_ptres_profile_E = ROOT.TGraphErrors(len(x_values))
-for bin in range(3,60):
+for bin in range(3,50):
     h_ptres_profile_B.SetPoint(bin, x_values[bin], rms_list_B[bin])
     h_ptres_profile_B.SetPointError(bin, 1, rmserr_list_B[bin])
     h_ptres_profile_E.SetPoint(bin, x_values[bin], rms_list_E[bin])
     h_ptres_profile_E.SetPointError(bin, 1, rmserr_list_E[bin])
+h_ptres_profile_B.SetPoint(55, 55, rms_higherPt_list_B[0])
+h_ptres_profile_B.SetPointError(55, 5, rmserr_higherPt_list_B[0])
 h_ptres_profile_B.SetPoint(65, 65, rms_higherPt_list_B[0])
 h_ptres_profile_B.SetPointError(65, 5, rmserr_higherPt_list_B[0])
 h_ptres_profile_B.SetPoint(75, 75, rms_higherPt_list_B[1])
@@ -487,6 +512,8 @@ h_ptres_profile_B.SetPointError(85, 5, rmserr_higherPt_list_B[2])
 h_ptres_profile_B.SetPoint(95, 95, rms_higherPt_list_B[3])
 h_ptres_profile_B.SetPointError(95, 5, rmserr_higherPt_list_B[3])
 
+h_ptres_profile_E.SetPoint(55, 55, rms_higherPt_list_E[0])
+h_ptres_profile_E.SetPointError(55, 5, rmserr_higherPt_list_E[0])
 h_ptres_profile_E.SetPoint(65, 65, rms_higherPt_list_E[0])
 h_ptres_profile_E.SetPointError(65, 5, rmserr_higherPt_list_E[0])
 h_ptres_profile_E.SetPoint(75, 75, rms_higherPt_list_E[1])
@@ -498,15 +525,16 @@ h_ptres_profile_E.SetPointError(95, 5, rmserr_higherPt_list_E[3])
 
 # Create a canvas and draw the histogram
 c_graph = ROOT.TCanvas("c_graph", "c_graph", 1000, 800)
-c_graph.SetLeftMargin(0.17)
-c_graph.SetBottomMargin(0.17)
+c_graph.SetLeftMargin(0.16)
+c_graph.SetBottomMargin(0.15)
 h_ptres_profile_B.GetXaxis().SetRangeUser(2,100)
-h_ptres_profile_B.GetYaxis().SetRangeUser(0,0.026)
-h_ptres_profile_E.GetYaxis().SetRangeUser(0,0.026)
+h_ptres_profile_B.GetYaxis().SetRangeUser(0,0.03)
+h_ptres_profile_E.GetYaxis().SetRangeUser(0,0.03)
 h_ptres_profile_E.GetXaxis().SetRangeUser(2,100)
-h_ptres_profile_B.GetXaxis().SetTitle("p_{T}^{#mu} [GeV]")
+h_ptres_profile_B.GetXaxis().SetTitle("Scouting muon p_{T} [GeV]")
+#h_ptres_profile_B.GetXaxis().SetTitle("Scouting muon p_{T}^{#mu}_{scout} [GeV]")
 h_ptres_profile_B.GetYaxis().SetTitle("RMS ( #frac{p_{T}^{scout}-p_{T}^{off}}{p_{T}^{off}} )")
-h_ptres_profile_B.GetYaxis().SetTitleOffset(1.9)
+h_ptres_profile_B.GetYaxis().SetTitleOffset(2.0)
 h_ptres_profile_B.GetXaxis().SetLabelOffset(0.02)
 h_ptres_profile_B.GetXaxis().SetTitleOffset(1.9)
     
@@ -524,24 +552,60 @@ h_ptres_profile_B.Draw("AP")  # "P" option for marker plotting
 h_ptres_profile_E.Draw("P same")  # "P" option for marker plotting
 
 # Customize the legend
-gr_text = ROOT.TPaveText(0.18, 0.78, 0.65, 0.83, "NDC")
-gr_text.AddText("Dimuon events, dR_{#mu#mu} > 0.2, p_{T}^{#mu} > 3 GeV")
+gr_text = ROOT.TPaveText(0.17, 0.76, 0.88, 0.8, "NDC")
+if (novtx):
+    gr_text.AddText("Dimuon events (vtx unconstrained), #DeltaR_{#mu#mu} > 0.2, p_{T}^{#mu} > 3 GeV")
+    #gr_text.AddText("Dimuon events (NoVtx muon reco), #DeltaR_{#mu#mu} > 0.2, p_{T}^{#mu} > 3 GeV")
+elif (vtx):
+    gr_text.AddText("Dimuon events (vtx constrained), #DeltaR_{#mu#mu} > 0.2, p_{T}^{#mu} > 3 GeV")
+    #gr_text.AddText("Dimuon events (Vtx muon reco), #DeltaR_{#mu#mu} > 0.2, p_{T}^{#mu} > 3 GeV")
+gr_text.SetTextAlign(13)
 gr_text.SetTextFont(62)
 gr_text.SetTextSize(0.032)
 gr_text.SetFillColor(0)
 
-
-leg_profile = ROOT.TLegend(0.2, 0.68, 0.5, 0.78)
-leg_profile.SetTextSize (0.032)
+leg_profile = ROOT.TLegend(0.2, 0.62, 0.55, 0.73)
+leg_profile.SetTextSize (0.034)
 leg_profile.SetLineWidth(0)
 leg_profile.AddEntry(h_ptres_profile_B, "Barrel", "P")
 leg_profile.AddEntry(h_ptres_profile_E, "Endcap", "P")
 leg_profile.Draw()
 gr_text.Draw("same")
 
+latex = TLatex();                                                                                                          
+latex.SetTextSize(0.05);                                                                                                          
+latex.SetTextAlign(13);                                                                                                   
+latex.SetTextFont(62)                                                                                                            
+latex.DrawLatexNDC(.21,.87,"CMS");                                                                                            
+latex.SetTextFont(52)                                                                                                              
+latex.DrawLatexNDC(.29,.87, " Preliminary");                                                                                        
+latex.SetTextFont(42)                                                                                                  
+latex.SetTextSize(0.045);                                                                                               
+latex.DrawLatexNDC(.67,.95,"2024 (13.6 TeV)");
+
 c_graph.Draw()
-CMS_lumi.CMS_lumi(c_graph, 0, 0)
 c_graph.Update()
-    
-c_graph.SaveAs(outputdir + "/ptres_graph_BE.png")
-c_graph.SaveAs(outputdir + "/ptres_graph_BE.pdf")
+
+if (novtx):
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_noVtxMu_2024.png")
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_noVtxMu_2024.pdf")
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_noVtxMu_2024.C")
+    # Save them to a ROOT file
+    out_file = ROOT.TFile("TGraph_ptres_noVtxMu.root", "RECREATE")
+    h_ptres_profile_B.SetName("noVtxMu_B")
+    h_ptres_profile_E.SetName("noVtxMu_E")
+    h_ptres_profile_B.Write()
+    h_ptres_profile_E.Write()
+    out_file.Close()
+elif (vtx):
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_vtxMu_2024.png")
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_vtxMu_2024.pdf")
+    c_graph.SaveAs(outputdir + "/LLPpaper_ptres_graph_BE_vtxMu_2024.C")
+    # Save them to a ROOT file
+    out_file = ROOT.TFile("TGraph_ptres_vtxMu.root", "RECREATE")
+    h_ptres_profile_B.SetName("vtxMu_B")
+    h_ptres_profile_E.SetName("vtxMu_E")
+    h_ptres_profile_B.Write()
+    h_ptres_profile_E.Write()
+    out_file.Close()
+

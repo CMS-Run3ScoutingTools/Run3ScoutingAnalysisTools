@@ -104,7 +104,6 @@ private:
   edm::EDGetToken              algToken_;
   std::unique_ptr<l1t::L1TGlobalUtil> l1GtUtils_;
   std::vector<std::string>     l1Seeds_;
-  std::vector<std::string>     l1MonitorSeeds_;
   std::vector<bool>            l1Result_;
   std::vector<bool>            l1Result_mon_;
   
@@ -182,12 +181,10 @@ ScoutingTreeMakerRun3Monitor::ScoutingTreeMakerRun3Monitor(const edm::ParameterS
     extInputTag_ = iConfig.getParameter<edm::InputTag>("l1tExtBlkInputTag");
     algToken_ = consumes<BXVector<GlobalAlgBlk>>(algInputTag_);
     l1Seeds_ = iConfig.getParameter<std::vector<std::string> >("l1Seeds");
-    l1MonitorSeeds_ = iConfig.getParameter<std::vector<std::string> >("l1MonitorSeeds");
     l1GtUtils_ = std::make_unique<l1t::L1TGlobalUtil>(iConfig, consumesCollector(), *this, algInputTag_, extInputTag_, l1t::UseEventSetupIn::Event);
   }
   else {
     l1Seeds_ = std::vector<std::string>();
-    l1MonitorSeeds_ = std::vector<std::string>();
     l1GtUtils_ = 0;
   }
 }
@@ -255,7 +252,6 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
 
   // NOTE: No selection on the Monitoring seeds
   // -------------------------------------------
-  //bool passMonitor=false; 
   //bool passScouting=false; 
   if (doL1) {
       l1GtUtils_->retrieveL1(iEvent,iSetup,algToken_);
@@ -272,14 +268,7 @@ void ScoutingTreeMakerRun3Monitor::analyze(const edm::Event& iEvent, const edm::
           l1Result_.push_back( l1htbit );
           //if (l1htbit) passScouting=true; // No selection on the Scouting seeds, selection stores
       }
-      for( unsigned int iseed = 0; iseed < l1MonitorSeeds_.size(); iseed++ ) {
-          bool l1htbit = 0;
-          l1GtUtils_->getFinalDecisionByName(string(l1MonitorSeeds_[iseed]), l1htbit);
-	  l1Result_mon_.push_back( l1htbit );
-          //if (l1htbit) passMonitor=true; // No selection on the Monitoring seeds, selection stored
-      }
   }
-  //if (!passMonitor) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Monitoring seeds
   //if (!passScouting) {/*cout<<"failed L1 seed"<<endl;*/ return;} // No selection on the Scouting seeds
     
   Handle<double> rhoH;
@@ -579,7 +568,7 @@ void ScoutingTreeMakerRun3Monitor::endJob() {
 void ScoutingTreeMakerRun3Monitor::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
     // HLT paths
     //triggerPathsVector.push_back("DST_Run3_PFScoutingPixelTracking_v*");
-    triggerPathsVector.push_back("DST_PFScouting_DoubleMuon_v*");
+    triggerPathsVector.push_back("DST_PFScouting_DoubleMuonVtx_v*");
 
     HLTConfigProvider hltConfig;
     bool changedConfig = false;
